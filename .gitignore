@@ -1,0 +1,13 @@
+.DS_Store
+build
+.idea
+*.so
+*.tar
+logs/*
+bin
+cover.out
+cover.html
+coverage.txt
+/example/contracts/src/broker/vendor/
+/example/contracts/src/data_swapper/vendor/
+/example/contracts/src/transfer/vendor/
