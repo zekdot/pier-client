@@ -56,13 +56,14 @@ type ContractMeta struct {
 
 type Client struct {
 	meta     *ContractMeta
-	consumer *Consumer
+	//consumer *Consumer
 	eventC   chan *pb.IBTP
 	pierId   string
 	name     string
 	outMeta  map[string]uint64
 	ticker   *time.Ticker
 	done     chan bool
+	client   *RpcClient
 }
 
 type CallFunc struct {
@@ -93,18 +94,22 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 		m = make(map[string]uint64)
 	}
 
-	mgh, err := newFabricHandler(contractmeta.EventFilter, eventC, pierId)
-	if err != nil {
-		return err
-	}
+	//mgh, err := newFabricHandler(contractmeta.EventFilter, eventC, pierId)
+	//if err != nil {
+	//	return err
+	//}
 
 	done := make(chan bool)
-	csm, err := NewConsumer(configPath, contractmeta, mgh, done)
+	//csm, err := NewConsumer(configPath, contractmeta, mgh, done)
 	if err != nil {
 		return err
 	}
-
-	c.consumer = csm
+	rpcClient, err := NewRpcClient(RPC_URL)
+	if err != nil {
+		logger.Error("dialing: ", err)
+	}
+	c.client = rpcClient
+	//c.consumer = csm
 	c.eventC = eventC
 	c.meta = contractmeta
 	c.pierId = pierId
@@ -119,7 +124,8 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 func (c *Client) Start() error {
 	logger.Info("Fabric consumer started")
 	go c.polling()
-	return c.consumer.Start()
+	return nil
+	//return c.consumer.Start()
 }
 
 // polling event from broker
@@ -127,39 +133,43 @@ func (c *Client) polling() {
 	for {
 		select {
 		case <-c.ticker.C:
-			args, err := json.Marshal(c.outMeta)
+			evs, err := c.client.Polling(c.outMeta)
 			if err != nil {
-				logger.Error("Marshal outMeta of plugin", "error", err.Error())
-				continue
+				return
 			}
-			request := channel.Request{
-				ChaincodeID: c.meta.CCID,
-				Fcn:         PollingEventMethod,
-				Args:        [][]byte{args},
-			}
+			//args, err := json.Marshal(c.outMeta)
+			//if err != nil {
+			//	logger.Error("Marshal outMeta of plugin", "error", err.Error())
+			//	continue
+			//}
+			//request := channel.Request{
+			//	ChaincodeID: c.meta.CCID,
+			//	Fcn:         PollingEventMethod,
+			//	Args:        [][]byte{args},
+			//}
 
-			var response channel.Response
-			response, err = c.consumer.ChannelClient.Execute(request)
-			if err != nil {
-				logger.Error("Polling events from contract", "error", err.Error())
-				continue
-			}
-			if response.Payload == nil {
-				continue
-			}
+			//var response channel.Response
+			//response, err = c.consumer.ChannelClient.Execute(request)
+			//if err != nil {
+			//	logger.Error("Polling events from contract", "error", err.Error())
+			//	continue
+			//}
+			//if response.Payload == nil {
+			//	continue
+			//}
 
-			proof, err := c.getProof(response)
-			if err != nil {
-				continue
-			}
+			//proof, err := c.getProof(response)
+			//if err != nil {
+			//	continue
+			//}
 
-			evs := make([]*Event, 0)
-			if err := json.Unmarshal(response.Payload, &evs); err != nil {
-				logger.Error("Unmarshal response payload", "error", err.Error())
-				continue
-			}
+			//evs := make([]*Event, 0)
+			//if err := json.Unmarshal(response.Payload, &evs); err != nil {
+			//	logger.Error("Unmarshal response payload", "error", err.Error())
+			//	continue
+			//}
 			for _, ev := range evs {
-				ev.Proof = proof
+				//ev.Proof = []byte("success")
 				c.eventC <- ev.Convert2IBTP(c.pierId, pb.IBTP_INTERCHAIN)
 				if c.outMeta == nil {
 					c.outMeta = make(map[string]uint64)
@@ -173,51 +183,11 @@ func (c *Client) polling() {
 	}
 }
 
-func (c *Client) getProof(response channel.Response) ([]byte, error) {
-	var proof []byte
-	var handle = func(response channel.Response) ([]byte, error) {
-		// query proof from fabric
-		l, err := ledger.New(c.consumer.channelProvider)
-		if err != nil {
-			return nil, err
-		}
-
-		t, err := l.QueryTransaction(response.TransactionID)
-		if err != nil {
-			return nil, err
-		}
-		pd := &common.Payload{}
-		if err := proto.Unmarshal(t.TransactionEnvelope.Payload, pd); err != nil {
-			return nil, err
-		}
-
-		pt := &peer.Transaction{}
-		if err := proto.Unmarshal(pd.Data, pt); err != nil {
-			return nil, err
-		}
-
-		return pt.Actions[0].Payload, nil
-	}
-
-	if err := retry.Retry(func(attempt uint) error {
-		var err error
-		proof, err = handle(response)
-		if err != nil {
-			logger.Error("can't get proof", "err", err.Error())
-			return err
-		}
-		return nil
-	}, strategy.Wait(2*time.Second)); err != nil {
-		logger.Error("get proof retry failed", "err", err.Error())
-	}
-
-	return proof, nil
-}
-
 func (c *Client) Stop() error {
 	c.ticker.Stop()
 	c.done <- true
-	return c.consumer.Shutdown()
+	//return c.consumer.Shutdown()
+	return nil
 }
 
 func (c *Client) Name() string {
@@ -225,7 +195,7 @@ func (c *Client) Name() string {
 }
 
 func (c *Client) Type() string {
-	return FabricType
+	return APPCHAIN_TYPE
 }
 
 func (c *Client) GetIBTP() chan *pb.IBTP {
@@ -299,7 +269,8 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		return ret, nil
 	}
 
-	proof, err := c.getProof(*chResp)
+	//proof, err := c.getProof(*chResp)
+	proof := []byte("success")
 	if err != nil {
 		return ret, err
 	}
@@ -548,11 +519,11 @@ func (c *Client) unpackIBTP(response *channel.Response, ibtpType pb.IBTP_Type) (
 	if err := json.Unmarshal(response.Payload, ret); err != nil {
 		return nil, err
 	}
-	proof, err := c.getProof(*response)
-	if err != nil {
-		return nil, err
-	}
-	ret.Proof = proof
+	//proof, err := c.getProof(*response)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//ret.Proof = proof
 
 	return ret.Convert2IBTP(c.pierId, ibtpType), nil
 }
@@ -570,31 +541,31 @@ func (c *Client) unpackMap(response channel.Response) (map[string]uint64, error)
 	return r, nil
 }
 
-type handler struct {
-	eventFilter string
-	eventC      chan *pb.IBTP
-	ID          string
-}
+//type handler struct {
+//	eventFilter string
+//	eventC      chan *pb.IBTP
+//	ID          string
+//}
 
-func newFabricHandler(eventFilter string, eventC chan *pb.IBTP, pierId string) (*handler, error) {
-	return &handler{
-		eventC:      eventC,
-		eventFilter: eventFilter,
-		ID:          pierId,
-	}, nil
-}
+//func newFabricHandler(eventFilter string, eventC chan *pb.IBTP, pierId string) (*handler, error) {
+//	return &handler{
+//		eventC:      eventC,
+//		eventFilter: eventFilter,
+//		ID:          pierId,
+//	}, nil
+//}
 
-func (h *handler) HandleMessage(deliveries *fab.CCEvent, payload []byte) {
-	if deliveries.EventName == h.eventFilter {
-		e := &pb.IBTP{}
-		if err := e.Unmarshal(deliveries.Payload); err != nil {
-			return
-		}
-		e.Proof = payload
-
-		h.eventC <- e
-	}
-}
+//func (h *handler) HandleMessage(deliveries *fab.CCEvent, payload []byte) {
+//	if deliveries.EventName == h.eventFilter {
+//		e := &pb.IBTP{}
+//		if err := e.Unmarshal(deliveries.Payload); err != nil {
+//			return
+//		}
+//		e.Proof = payload
+//
+//		h.eventC <- e
+//	}
+//}
 
 func main() {
 	plugin.Serve(&plugin.ServeConfig{
