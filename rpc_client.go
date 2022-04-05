@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/prometheus/common/log"
 	"net/rpc"
 	"strconv"
 	"strings"
@@ -180,7 +181,7 @@ func (rpcClient *RpcClient) InvokeIndexUpdate(sourceChainID, sequenceNum string,
 }
 
 // TODO finish it
-func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetCID string, isReq bool, callFuncStr string) (string, error) {
+func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetCID string, isReq bool, bizCallData []byte) (string, error) {
 
 	if err := rpcClient.updateIndex(sourceChainID, sequenceNum, isReq); err != nil {
 		return "", err
@@ -192,12 +193,15 @@ func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetC
 	}
 
 	callFunc := &CallFunc{}
-	if err := json.Unmarshal([]byte(callFuncStr), callFunc); err != nil {
-		return "", fmt.Errorf("unmarshal call func failed for %s", callFuncStr)
+	if err := json.Unmarshal(bizCallData, callFunc); err != nil {
+		return "", fmt.Errorf("unmarshal call func failed for %s", string(bizCallData))
 	}
 
 	// TODO use callFunc to call related method, Still don't know what Func and Args will be.. emmm
-
+	log.Infof("call func %s", callFunc.Func)
+	for arg, idx := range callFunc.Args {
+		log.Infof("\targ%d is %s", idx, string(arg))
+	}
 	//var ccArgs [][]byte
 	//ccArgs = append(ccArgs, []byte(callFunc.Func))
 	//ccArgs = append(ccArgs, callFunc.Args...)

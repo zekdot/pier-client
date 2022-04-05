@@ -10,16 +10,9 @@ import (
 
 	"github.com/Rican7/retry"
 	"github.com/Rican7/retry/strategy"
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
-	"github.com/hyperledger/fabric-chaincode-go/shim"
-	"github.com/hyperledger/fabric-protos-go/common"
-	"github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/channel"
-	"github.com/hyperledger/fabric-sdk-go/pkg/client/ledger"
-	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
-	"github.com/hyperledger/fabric/common/util"
 	"github.com/meshplus/bitxhub-model/pb"
 	"github.com/meshplus/pier/pkg/plugins"
 )
@@ -33,18 +26,18 @@ var (
 )
 
 var _ plugins.Client = (*Client)(nil)
-
-const (
-	GetInnerMetaMethod      = "getInnerMeta"    // get last index of each source chain executing tx
-	GetOutMetaMethod        = "getOuterMeta"    // get last index of each receiving chain crosschain event
-	GetCallbackMetaMethod   = "getCallbackMeta" // get last index of each receiving chain callback tx
-	GetInMessageMethod      = "getInMessage"
-	GetOutMessageMethod     = "getOutMessage"
-	PollingEventMethod      = "pollingEvent"
-	InvokeInterchainMethod  = "invokeInterchain"
-	InvokeIndexUpdateMethod = "invokeIndexUpdate"
-	FabricType              = "fabric"
-)
+//
+//const (
+//	GetInnerMetaMethod      = "getInnerMeta"    // get last index of each source chain executing tx
+//	GetOutMetaMethod        = "getOuterMeta"    // get last index of each receiving chain crosschain event
+//	GetCallbackMetaMethod   = "getCallbackMeta" // get last index of each receiving chain callback tx
+//	GetInMessageMethod      = "getInMessage"
+//	GetOutMessageMethod     = "getOutMessage"
+//	PollingEventMethod      = "pollingEvent"
+//	InvokeInterchainMethod  = "invokeInterchain"
+//	InvokeIndexUpdateMethod = "invokeIndexUpdate"
+//	FabricType              = "fabric"
+//)
 
 type ContractMeta struct {
 	EventFilter string `json:"event_filter"`
@@ -73,18 +66,18 @@ type CallFunc struct {
 
 func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 	eventC := make(chan *pb.IBTP)
-	fabricConfig, err := UnmarshalConfig(configPath)
-	if err != nil {
-		return fmt.Errorf("unmarshal config for plugin :%w", err)
-	}
-
-	contractmeta := &ContractMeta{
-		EventFilter: fabricConfig.EventFilter,
-		Username:    fabricConfig.Username,
-		CCID:        fabricConfig.CCID,
-		ChannelID:   fabricConfig.ChannelId,
-		ORG:         fabricConfig.Org,
-	}
+	//fabricConfig, err := UnmarshalConfig(configPath)
+	//if err != nil {
+	//	return fmt.Errorf("unmarshal config for plugin :%w", err)
+	//}
+	//
+	//contractmeta := &ContractMeta{
+	//	EventFilter: fabricConfig.EventFilter,
+	//	Username:    fabricConfig.Username,
+	//	CCID:        fabricConfig.CCID,
+	//	ChannelID:   fabricConfig.ChannelId,
+	//	ORG:         fabricConfig.Org,
+	//}
 
 	m := make(map[string]uint64)
 	if err := json.Unmarshal(extra, &m); err != nil {
@@ -101,9 +94,9 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 
 	done := make(chan bool)
 	//csm, err := NewConsumer(configPath, contractmeta, mgh, done)
-	if err != nil {
-		return err
-	}
+	//if err != nil {
+	//	return err
+	//}
 	rpcClient, err := NewRpcClient(RPC_URL)
 	if err != nil {
 		logger.Error("dialing: ", err)
@@ -111,9 +104,9 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 	c.client = rpcClient
 	//c.consumer = csm
 	c.eventC = eventC
-	c.meta = contractmeta
+	//c.meta = contractmeta
 	c.pierId = pierId
-	c.name = fabricConfig.Name
+	c.name = APPCHAIN_TYPE
 	c.outMeta = m
 	c.ticker = time.NewTicker(2 * time.Second)
 	c.done = done
@@ -137,37 +130,6 @@ func (c *Client) polling() {
 			if err != nil {
 				return
 			}
-			//args, err := json.Marshal(c.outMeta)
-			//if err != nil {
-			//	logger.Error("Marshal outMeta of plugin", "error", err.Error())
-			//	continue
-			//}
-			//request := channel.Request{
-			//	ChaincodeID: c.meta.CCID,
-			//	Fcn:         PollingEventMethod,
-			//	Args:        [][]byte{args},
-			//}
-
-			//var response channel.Response
-			//response, err = c.consumer.ChannelClient.Execute(request)
-			//if err != nil {
-			//	logger.Error("Polling events from contract", "error", err.Error())
-			//	continue
-			//}
-			//if response.Payload == nil {
-			//	continue
-			//}
-
-			//proof, err := c.getProof(response)
-			//if err != nil {
-			//	continue
-			//}
-
-			//evs := make([]*Event, 0)
-			//if err := json.Unmarshal(response.Payload, &evs); err != nil {
-			//	logger.Error("Unmarshal response payload", "error", err.Error())
-			//	continue
-			//}
 			for _, ev := range evs {
 				//ev.Proof = []byte("success")
 				c.eventC <- ev.Convert2IBTP(c.pierId, pb.IBTP_INTERCHAIN)
@@ -235,7 +197,7 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 	}
 
 	var result [][]byte
-	var chResp *channel.Response
+	//var chResp *channel.Response
 	callFunc := CallFunc{
 		Func: content.Func,
 		Args: content.Args,
@@ -245,13 +207,13 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		ret.Status = false
 		ret.Message = fmt.Sprintf("marshal ibtp %s func %s and args: %s", ibtp.ID(), callFunc.Func, err.Error())
 
-		res, _, err := c.InvokeIndexUpdate(ibtp.From, ibtp.Index, ibtp.Category())
+		_, _, err := c.InvokeIndexUpdate(ibtp.From, ibtp.Index, ibtp.Category())
 		if err != nil {
 			return nil, err
 		}
-		chResp = res
+		//chResp = res
 	} else {
-		res, resp, err := c.InvokeInterchain(ibtp.From, ibtp.Index, content.DstContractId, ibtp.Category(), bizData)
+		_, resp, err := c.InvokeInterchain(ibtp.From, ibtp.Index, content.DstContractId, ibtp.Category(), bizData)
 		if err != nil {
 			return nil, fmt.Errorf("invoke interchain for ibtp %s to call %s: %w", ibtp.ID(), content.Func, err)
 		}
@@ -260,8 +222,7 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		ret.Message = resp.Message
 
 		// if there is callback function, parse returned value
-		result = util.ToChaincodeArgs(strings.Split(string(resp.Data), ",")...)
-		chResp = res
+		result = toChaincodeArgs(strings.Split(string(resp.Data), ",")...)
 	}
 
 	// If is response IBTP, then simply return
@@ -284,26 +245,27 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 }
 
 func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, category pb.IBTP_Category, bizCallData []byte) (*channel.Response, *Response, error) {
-	req := "true"
+	req := true
 	if category == pb.IBTP_RESPONSE {
-		req = "false"
+		req = false
 	}
-	args := util.ToChaincodeArgs(from, strconv.FormatUint(index, 10), destAddr, req)
-	args = append(args, bizCallData)
-	request := channel.Request{
-		ChaincodeID: c.meta.CCID,
-		Fcn:         InvokeInterchainMethod,
-		Args:        args,
-	}
+	//args := util.ToChaincodeArgs(from, strconv.FormatUint(index, 10), destAddr, req)
+	//args = append(args, bizCallData)
+	//request := channel.Request{
+	//	ChaincodeID: c.meta.CCID,
+	//	Fcn:         InvokeInterchainMethod,
+	//	Args:        args,
+	//}
 
 	// retry executing
-	var res channel.Response
+	var res string
 	var err error
 	if err := retry.Retry(func(attempt uint) error {
-		res, err = c.consumer.ChannelClient.Execute(request)
+		res, err = c.client.InvokeInterchain(from, strconv.FormatUint(index, 10), destAddr, req, bizCallData)
+		//res, err = c.consumer.ChannelClient.Execute(request)
 		if err != nil {
 			if strings.Contains(err.Error(), "Chaincode status Code: (500)") {
-				res.ChaincodeStatus = shim.ERROR
+				//res.ChaincodeStatus = shim.ERROR
 				logger.Error("execute request failed", "err", err.Error())
 				return nil
 			}
@@ -319,102 +281,37 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 		return nil, nil, err
 	}
 
-	logger.Info("response", "cc status", strconv.Itoa(int(res.ChaincodeStatus)), "payload", string(res.Payload))
+	//logger.Info("response", "cc status", strconv.Itoa(int(res.ChaincodeStatus)), "payload", string(res.Payload))
 	response := &Response{}
-	if err := json.Unmarshal(res.Payload, response); err != nil {
-		return nil, nil, err
-	}
-
-	return &res, response, nil
+	//if err := json.Unmarshal(res.Payload, response); err != nil {
+	//	return nil, nil, err
+	//}
+	response.Data = []byte(res)
+	return nil, response, nil
 }
 
 func (c *Client) GetOutMessage(to string, idx uint64) (*pb.IBTP, error) {
-	args := util.ToChaincodeArgs(to, strconv.FormatUint(idx, 10))
-	request := channel.Request{
-		ChaincodeID: c.meta.CCID,
-		Fcn:         GetOutMessageMethod,
-		Args:        args,
-	}
-
-	var response channel.Response
-	response, err := c.consumer.ChannelClient.Execute(request)
+	ret, err := c.client.GetOutMessage(to, idx)
 	if err != nil {
 		return nil, err
 	}
-
-	return c.unpackIBTP(&response, pb.IBTP_INTERCHAIN)
+	return ret.Convert2IBTP(c.pierId, pb.IBTP_INTERCHAIN), nil
 }
 
 func (c *Client) GetInMessage(from string, index uint64) ([][]byte, error) {
-	request := channel.Request{
-		ChaincodeID: c.meta.CCID,
-		Fcn:         GetInMessageMethod,
-		Args:        util.ToChaincodeArgs(from, strconv.FormatUint(index, 10)),
-	}
-
-	var response channel.Response
-	response, err := c.consumer.ChannelClient.Execute(request)
-	if err != nil {
-		return nil, fmt.Errorf("execute req: %w", err)
-	}
-
-	resp := &peer.Response{}
-	if err := json.Unmarshal(response.Payload, resp); err != nil {
-		return nil, err
-	}
-
-	results := []string{"true"}
-	if resp.Status == shim.ERROR {
-		results = []string{"false"}
-	}
-	results = append(results, strings.Split(string(resp.Payload), ",")...)
-
-	return util.ToChaincodeArgs(results...), nil
+	return c.client.GetInMessage(from, index)
 }
 
 func (c *Client) GetInMeta() (map[string]uint64, error) {
-	request := channel.Request{
-		ChaincodeID: c.meta.CCID,
-		Fcn:         GetInnerMetaMethod,
-	}
-
-	var response channel.Response
-	response, err := c.consumer.ChannelClient.Execute(request)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.unpackMap(response)
+	return c.client.GetInnerMeta()
 }
 
 func (c *Client) GetOutMeta() (map[string]uint64, error) {
-	request := channel.Request{
-		ChaincodeID: c.meta.CCID,
-		Fcn:         GetOutMetaMethod,
-	}
-
-	var response channel.Response
-	response, err := c.consumer.ChannelClient.Execute(request)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.unpackMap(response)
+	return c.client.GetOuterMeta()
 }
 
 func (c Client) GetCallbackMeta() (map[string]uint64, error) {
-	request := channel.Request{
-		ChaincodeID: c.meta.CCID,
-		Fcn:         GetCallbackMetaMethod,
-	}
-
-	var response channel.Response
-	response, err := c.consumer.ChannelClient.Execute(request)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.unpackMap(response)
+	return c.client.GetCallbackMeta()
 }
 
 func (c *Client) CommitCallback(ibtp *pb.IBTP) error {
@@ -460,12 +357,13 @@ func (c *Client) RollbackIBTP(ibtp *pb.IBTP, isSrcChain bool) (*pb.RollbackIBTPR
 }
 
 func (c *Client) IncreaseInMeta(original *pb.IBTP) (*pb.IBTP, error) {
-	response, _, err := c.InvokeIndexUpdate(original.From, original.Index, original.Category())
+	_, _, err := c.InvokeIndexUpdate(original.From, original.Index, original.Category())
 	if err != nil {
 		logger.Error("update in meta", "ibtp_id", original.ID(), "error", err.Error())
 		return nil, err
 	}
-	proof, err := c.getProof(*response)
+	//proof, err := c.getProof(*response)
+	proof := []byte("success")
 	if err != nil {
 		return nil, err
 	}
@@ -490,28 +388,20 @@ func (c *Client) GetReceipt(ibtp *pb.IBTP) (*pb.IBTP, error) {
 }
 
 func (c Client) InvokeIndexUpdate(from string, index uint64, category pb.IBTP_Category) (*channel.Response, *Response, error) {
-	req := "true"
+	req := true
 	if category == pb.IBTP_RESPONSE {
-		req = "false"
+		req = false
 	}
-	args := util.ToChaincodeArgs(from, strconv.FormatUint(index, 10), req)
-	request := channel.Request{
-		ChaincodeID: c.meta.CCID,
-		Fcn:         InvokeIndexUpdateMethod,
-		Args:        args,
-	}
-
-	res, err := c.consumer.ChannelClient.Execute(request)
+	err := c.client.InvokeIndexUpdate(from, strconv.FormatUint(index, 10), req)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	response := &Response{}
-	if err := json.Unmarshal(res.Payload, response); err != nil {
-		return nil, nil, err
-	}
+	//if err := json.Unmarshal(res.Payload, response); err != nil {
+	//	return nil, nil, err
+	//}
 
-	return &res, response, nil
+	return nil, response, nil
 }
 
 func (c *Client) unpackIBTP(response *channel.Response, ibtpType pb.IBTP_Type) (*pb.IBTP, error) {
@@ -519,11 +409,6 @@ func (c *Client) unpackIBTP(response *channel.Response, ibtpType pb.IBTP_Type) (
 	if err := json.Unmarshal(response.Payload, ret); err != nil {
 		return nil, err
 	}
-	//proof, err := c.getProof(*response)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//ret.Proof = proof
 
 	return ret.Convert2IBTP(c.pierId, ibtpType), nil
 }
@@ -540,32 +425,6 @@ func (c *Client) unpackMap(response channel.Response) (map[string]uint64, error)
 
 	return r, nil
 }
-
-//type handler struct {
-//	eventFilter string
-//	eventC      chan *pb.IBTP
-//	ID          string
-//}
-
-//func newFabricHandler(eventFilter string, eventC chan *pb.IBTP, pierId string) (*handler, error) {
-//	return &handler{
-//		eventC:      eventC,
-//		eventFilter: eventFilter,
-//		ID:          pierId,
-//	}, nil
-//}
-
-//func (h *handler) HandleMessage(deliveries *fab.CCEvent, payload []byte) {
-//	if deliveries.EventName == h.eventFilter {
-//		e := &pb.IBTP{}
-//		if err := e.Unmarshal(deliveries.Payload); err != nil {
-//			return
-//		}
-//		e.Proof = payload
-//
-//		h.eventC <- e
-//	}
-//}
 
 func main() {
 	plugin.Serve(&plugin.ServeConfig{
