@@ -131,7 +131,9 @@ func (c *Client) polling() {
 				return
 			}
 			for _, ev := range evs {
-				//ev.Proof = []byte("success")
+				ev.Proof = []byte("success")
+				evStr, _ := json.Marshal(ev)
+				logger.Info("in this polling, event is " + string(evStr))
 				c.eventC <- ev.Convert2IBTP(c.pierId, pb.IBTP_INTERCHAIN)
 				if c.outMeta == nil {
 					c.outMeta = make(map[string]uint64)
