@@ -209,11 +209,19 @@ func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetC
 	//if response.Status != shim.OK {
 	//	return errorResponse(fmt.Sprintf("invoke chaincode '%s' function %s err: %s", splitedCID[1], callFunc.Func, response.Message))
 	//}
-	value := "success"
+	var value = "unknown"
+	var err error
+	if callFunc.Func == "interchainGet"  {
+		value, err = rpcClient.GetData(string(callFunc.Args[0]))
+		if err != nil {
+			return "", err
+		}
+	}
+
 
 	inKey := inMsgKey(sourceChainID, sequenceNum)
 	//value, err := json.Marshal(response)
-	err := rpcClient.SetData(inKey, string(value))
+	err = rpcClient.SetData(inKey, value)
 	if err != nil {
 		return "", err
 	}
