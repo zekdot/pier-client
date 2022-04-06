@@ -158,6 +158,12 @@ func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetC
 		if err != nil {
 			return "", err
 		}
+	} else if callFunc.Func == "interchainSet" {
+		// TODO parhaps have comma problem, need to deal with
+		err = rpcClient.SetData(string(callFunc.Args[0]), string(callFunc.Args[1]))
+		if err != nil {
+			return "", err
+		}
 	}
 
 
