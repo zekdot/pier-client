@@ -236,11 +236,15 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		return ret, err
 	}
 
+
+	//logger.Info("result is " + string(result))
 	ret.Result, err = c.generateCallback(ibtp, result, proof, ret.Status)
 	if err != nil {
 		return nil, err
 	}
 
+	tmp, err := json.Marshal(ret)
+	logger.Info("final return of submit IBTP is " + string(tmp))
 	return ret, nil
 }
 
@@ -263,6 +267,7 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 	if err := retry.Retry(func(attempt uint) error {
 		res, err = c.client.InvokeInterchain(from, strconv.FormatUint(index, 10), destAddr, req, bizCallData)
 		//res, err = c.consumer.ChannelClient.Execute(request)
+		logger.Info("res is " + res)
 		if err != nil {
 			if strings.Contains(err.Error(), "Chaincode status Code: (500)") {
 				//res.ChaincodeStatus = shim.ERROR
@@ -287,6 +292,7 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 	//	return nil, nil, err
 	//}
 	response.Data = []byte(res)
+	response.OK = true
 	return nil, response, nil
 }
 
@@ -400,6 +406,7 @@ func (c Client) InvokeIndexUpdate(from string, index uint64, category pb.IBTP_Ca
 	//if err := json.Unmarshal(res.Payload, response); err != nil {
 	//	return nil, nil, err
 	//}
+	response.OK = true
 
 	return nil, response, nil
 }

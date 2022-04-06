@@ -199,7 +199,7 @@ func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetC
 
 	// TODO use callFunc to call related method, Still don't know what Func and Args will be.. emmm
 	log.Infof("call func %s", callFunc.Func)
-	for arg, idx := range callFunc.Args {
+	for idx, arg := range callFunc.Args {
 		log.Infof("\targ%d is %s", idx, string(arg))
 	}
 	//var ccArgs [][]byte
@@ -209,16 +209,16 @@ func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetC
 	//if response.Status != shim.OK {
 	//	return errorResponse(fmt.Sprintf("invoke chaincode '%s' function %s err: %s", splitedCID[1], callFunc.Func, response.Message))
 	//}
-	response := "success"
+	value := "success"
 
 	inKey := inMsgKey(sourceChainID, sequenceNum)
-	value, err := json.Marshal(response)
-	err = rpcClient.SetData(inKey, string(value))
+	//value, err := json.Marshal(response)
+	err := rpcClient.SetData(inKey, string(value))
 	if err != nil {
 		return "", err
 	}
 
-	return response, nil
+	return value, nil
 }
 
 func (rpcClient *RpcClient) Polling(m map[string]uint64) ([]*Event, error) {
@@ -350,7 +350,9 @@ func (rpcClient *RpcClient) GetInMessage(sourceChainID string, sequenceNum uint6
 	if err != nil {
 		return nil, err
 	}
-	results := strings.Split(reply, ",")
+	results := []string{"true"}
+	//results := strings.Split(reply, ",")
+	results = append(results, strings.Split(string(reply), ",")...)
 	return toChaincodeArgs(results...), nil
 }
 
