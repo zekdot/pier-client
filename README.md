@@ -1,18 +1,11 @@
-# Pier Client Fabric
+# Pier Client General
 
-Pier-client-fabric is the plugin implementation for fabric blockchain.
+Pier-Client is plugin of bitxhub,  which use one plugin to support many appchain.
 
 ## How to build
 
-Use the following command to build
-
-```shell script
-make fabric1.4
-```
-
-This will create a `build` directory under the project path and generate a `fabric-client-1.4.so` inside the `build`.
-This `.so` file will be used by [Pier](https://github.com/meshplus/pier).
+I will update it when I have time...
 
 ## Usage
 
-Details about how to use this plugin can be found in [here](https://github.com/meshplus/pier/wiki/Pier%E4%BD%BF%E7%94%A8%E6%96%87%E6%A1%A3)  
+I will update it when I have time...
