@@ -139,7 +139,7 @@ func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetC
 		return "", fmt.Errorf("unmarshal call func failed for %s", string(bizCallData))
 	}
 
-	// TODO use callFunc to call related method, Still don't know what Func and Args will be.. emmm
+	// print what function will be call and what params will be
 	log.Infof("call func %s", callFunc.Func)
 	for idx, arg := range callFunc.Args {
 		log.Infof("\targ%d is %s", idx, string(arg))
@@ -159,8 +159,13 @@ func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetC
 			return "", err
 		}
 	} else if callFunc.Func == "interchainSet" {
-		// TODO parhaps have comma problem, need to deal with
-		err = rpcClient.SetData(string(callFunc.Args[0]), string(callFunc.Args[1]))
+		// still have comma problem, need to deal with, just concat all args except first arg with comma
+		var valuePart = make([]string, 0)
+		for _, arg := range callFunc.Args[1:] {
+			valuePart = append(valuePart, string(arg))
+		}
+		value := strings.Join(valuePart, ",")
+		err = rpcClient.SetData(string(callFunc.Args[0]), value)
 		if err != nil {
 			return "", err
 		}
