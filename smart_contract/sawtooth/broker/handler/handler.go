@@ -20,13 +20,21 @@ func NewHandler(broker *contract.Broker) *BrokerHandler {
 }
 
 func (handler *BrokerHandler) FamilyName() string {
-	return "broker"
+	return "cross-chain"
 }
 func(handler *BrokerHandler) FamilyVersions() [] string {
-	return []string{"1.0"}
+	return []string{"0.1"}
 }
 func (handler *BrokerHandler) Namespaces()[]string {
 	return []string{state.MetaNamespace, state.DataNamespace}
+}
+
+func (broker *BrokerHandler) isMetaRequest(key string) bool {
+	if len(key) < 4 {
+		return false
+	}
+	var prefix = key[:4]
+	return prefix == "inne" || prefix == "outt" || prefix == "call" || prefix == "in-m" || prefix == "out-"
 }
 
 func (handler *BrokerHandler) Apply(request *processor_pb2.TpProcessRequest, context *processor.Context) error {
@@ -40,17 +48,13 @@ func (handler *BrokerHandler) Apply(request *processor_pb2.TpProcessRequest, con
 	brokerState := state.NewBrokerState(context)
 	//fmt.Printf("after context")
 	broker := handler.broker
-	args := payload.Parameter
-
-	// Sawtooth server only need to finish write operation, read operation is implemented by client
-	switch payload.Function {
-		case "setMeta":
-			return broker.SetMeta(brokerState, args)
-		case "setData":
-			//return nil
-			return broker.SetData(brokerState, args)
-		default:
-			return &processor.InvalidTransactionError{
-				Msg: fmt.Sprintf("Invalid Action : '%v'", payload.Function)}
+	key := payload.Key
+	value := payload.Value
+	if handler.isMetaRequest(key) {
+		args := []string{key, string(request.GetPayload())}
+		return broker.SetMeta(brokerState, args)
+	} else {
+		args := []string{key, value}
+		return broker.SetData(brokerState, args)
 	}
 }

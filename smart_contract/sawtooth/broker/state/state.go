@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-//var Namespace = hexdigest("broker")[:6]
 var DataNamespace = "19d832"
 var MetaNamespace = "5978b3"
 
@@ -28,7 +27,9 @@ func (broker *BrokerState) SetMetaData(key string, value string) error {
 	data := []byte(value)
 	// 进行缓存
 	//broker.addressCache[address] = data
-	fmt.Printf("will save %s to %s\n", data, address)
+	// 删除原始数据
+	broker.context.DeleteState([]string{address})
+	fmt.Printf("will save metadata %s to %s\n", data, address)
 	// 存储进账本中
 	_, err := broker.context.SetState(map[string][] byte {
 		address: data,
@@ -41,7 +42,9 @@ func (broker *BrokerState) SetData(key string, value string) error {
 	data := []byte(value)
 	// 进行缓存
 	//broker.addressCache[address] = data
-	fmt.Printf("will save %s to %s", value, address)
+	// 删除原始数据
+	broker.context.DeleteState([]string{address})
+	fmt.Printf("will save data %s to %s", value, address)
 	// 存储进账本中
 	_, err := broker.context.SetState(map[string][] byte {
 		address: data,
@@ -55,16 +58,9 @@ func makeAddress(prefix string, name string) string {
 	return prefix + "00" + hexdigest(name)[:62]
 }
 
-// split regular data and meta
-//func makeMetaAddress(prefix string, name string) string {
-//	//fmt.Printf("get digest of %s\n", (typeValue + name))
-//	return prefix + hexdigest(name)[:64]
-//}
-
 func hexdigest(str string) string {
 	hash := sha512.New()
 	hash.Write([]byte(str))
 	hashBytes := hash.Sum(nil)
 	return strings.ToLower(hex.EncodeToString(hashBytes))
 }
-

@@ -2,4 +2,4 @@ build
 .git
 .idea
 figure
-broker_service
+deploySawtooth.sh
