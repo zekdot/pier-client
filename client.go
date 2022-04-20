@@ -133,7 +133,7 @@ func (c *Client) polling() {
 			for _, ev := range evs {
 				ev.Proof = []byte("success")
 				evStr, _ := json.Marshal(ev)
-				logger.Info("in this polling, event is " + string(evStr))
+				logger.Info("s2:in this polling, event is ", string(evStr), " add it to event channel which belong to pier")
 				c.eventC <- ev.Convert2IBTP(c.pierId, pb.IBTP_INTERCHAIN)
 				if c.outMeta == nil {
 					c.outMeta = make(map[string]uint64)
@@ -181,7 +181,7 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		return nil, fmt.Errorf("invalid ibtp category")
 	}
 
-	logger.Info("submit ibtp", "id", ibtp.ID(), "contract", content.DstContractId, "func", content.Func)
+	logger.Info("s3:submit ibtp", "id", ibtp.ID(), "contract", content.DstContractId, "func", content.Func)
 	for i, arg := range content.Args {
 		logger.Info("arg", strconv.Itoa(i), string(arg))
 	}
@@ -205,6 +205,7 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		Args: content.Args,
 	}
 	bizData, err := json.Marshal(callFunc)
+	logger.Info("s4:call concrete smart contract to execute cross-chain request")
 	if err != nil {
 		ret.Status = false
 		ret.Message = fmt.Sprintf("marshal ibtp %s func %s and args: %s", ibtp.ID(), callFunc.Func, err.Error())
