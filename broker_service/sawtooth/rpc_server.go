@@ -1,19 +1,35 @@
 package main
 
 import (
-	"fmt"
+
+	//"github.com/wonderivan/logger"
+
+	"encoding/json"
 	"github.com/hashicorp/go-hclog"
 	"os"
 )
 
 var (
 	logger = hclog.New(&hclog.LoggerOptions{
-		Name:   "client",
-		Output: os.Stderr,
+		Name:   "performance",
+		Output: os.Stdout,
 		Level:  hclog.Trace,
 	})
 )
-
+type Event struct {
+	Index         uint64 `json:"index"`
+	DstChainID    string `json:"dst_chain_id"`
+	SrcContractID string `json:"src_contract_id"`
+	DstContractID string `json:"dst_contract_id"`
+	Func          string `json:"func"`
+	Args          string `json:"args"`
+	Callback      string `json:"callback"`
+	Argscb        string `json:"argscb"`
+	Rollback      string `json:"rollback"`
+	Argsrb        string `json:"argsrb"`
+	Proof         []byte `json:"proof"`
+	Extra         []byte `json:"extra"`
+}
 type Service struct {
 	broker *BrokerClient
 }
@@ -36,10 +52,12 @@ func (s *Service) SetValue(req *ReqArgs, reply *string) error{
 	args := req.Args
 	// if this is a outer cross-chain request
 	if len(args[0]) > 7 && args[0][0:7] == "out-msg" {
-		logger.Debug("s1:save cross-chain request to ledger")
+		evt := &Event{}
+		_ = json.Unmarshal([]byte(args[1]), evt)
+		logger.Info("s1:key-" + evt.Args +" save cross-chain request to ledger")
 	}
 
-	fmt.Printf("set %s to %s\n", args[0], args[1])
+	//fmt.Printf("set %s to %s\n", args[0], args[1])
 	err := broker.setValue(args[0], args[1])
 	return err
 }
@@ -48,7 +66,7 @@ func (s *Service) SetValue(req *ReqArgs, reply *string) error{
 func (s *Service) GetValue(req *ReqArgs, reply *string) error{
 	broker := s.broker
 	args := req.Args
-	fmt.Printf("get value of %s\n", args[0])
+	//fmt.Printf("get value of %s\n", args[0])
 	res, err := broker.getValue(args[0])
 	*reply = string(res)
 	return err

@@ -14,7 +14,6 @@ import (
 	"github.com/hyperledger/sawtooth-sdk-go/signing"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -68,11 +67,11 @@ func (broker *BrokerClient)getValue(key string) ([]byte, error) {
 		address = broker.getAddress(DATA_NAMESPACE, key)
 	}
 	apiSuffix := fmt.Sprintf("%s/%s", STATE_API, address)
-	log.Printf("apiSuffix is %s\n", apiSuffix)
+	//log.Printf("apiSuffix is %s\n", apiSuffix)
 	//fmt.Printf()
 
 	rawData, err := broker.sendRequest(apiSuffix, []byte{}, "", key)
-	log.Printf("Get raw data: %s\n", rawData)
+	//log.Printf("Get raw data: %s\n", rawData)
 	if err != nil {
 		return nil, err
 	}
@@ -82,21 +81,21 @@ func (broker *BrokerClient)getValue(key string) ([]byte, error) {
 		return nil, errors.New(fmt.Sprint("Error reading response: %v", err))
 	}
 	data, _ := responseMap["data"].(string)
-	log.Printf("After base64 decode: %s\n", data)
+	//log.Printf("After base64 decode: %s\n", data)
 
 
 	fishStr, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("After base64 decode: %s\n", string(fishStr))
+	//log.Printf("After base64 decode: %s\n", string(fishStr))
 	if isMeta {
 		resMap := make(map[string]string)
 		err := json.Unmarshal(fishStr, &resMap)
 		if err != nil {
 			return nil, err
 		}
-		log.Println(resMap)
+		//log.Println(resMap)
 		return []byte(resMap["value"]), nil
 	}
 	return fishStr, nil
@@ -126,7 +125,7 @@ func (broker *BrokerClient) sendRequest(
 	// Construct URL
 	var url string
 	url = fmt.Sprintf("%s/%s", SAWTOOTH_URL, apiSuffix)
-	fmt.Println("url" + url)
+	//fmt.Println("url" + url)
 	// Send request to validator URL
 	var response *http.Response
 	var err error
@@ -135,8 +134,8 @@ func (broker *BrokerClient) sendRequest(
 
 	if len(data) > 0 {
 		response, err = http.Post(url, contentType, bytes2.NewBuffer(data))
-		fmt.Println("response")
-		fmt.Println(response)
+		//fmt.Println("response")
+		//fmt.Println(response)
 	} else {
 		response, err = http.Get(url)
 	}

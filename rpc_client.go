@@ -122,7 +122,6 @@ func (rpcClient *RpcClient) InvokeIndexUpdate(sourceChainID, sequenceNum string,
 	return nil
 }
 
-// TODO finish it
 func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetCID string, isReq bool, bizCallData []byte) (string, error) {
 
 	if err := rpcClient.updateIndex(sourceChainID, sequenceNum, isReq); err != nil {
@@ -154,11 +153,13 @@ func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetC
 	var value = "unknown"
 	var err error
 	if callFunc.Func == "interchainGet"  {
+		logger.Info("s3:key-" + string(callFunc.Args[0]) + " submit interchainGet request")
 		value, err = rpcClient.GetData(string(callFunc.Args[0]))
 		if err != nil {
 			return "", err
 		}
 	} else if callFunc.Func == "interchainSet" {
+		logger.Info("s4:key-" + string(callFunc.Args[0]) + " submit interchainSet request")
 		// still have comma problem, need to deal with, just concat all args except first arg with comma
 		var valuePart = make([]string, 0)
 		for _, arg := range callFunc.Args[1:] {
