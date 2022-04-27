@@ -47,7 +47,7 @@ function switch_orgs2() {
 function install_chaincode() {
     cd $FABRIC_SAMPLE_PATH/test-network
     
-    cp $PIER_CLIENT_PATH/example/contracts/src/${CC_NAME}/${CC_NAME}.tar.gz .
+    cp $PIER_CLIENT_PATH/smart_contract/fabric/${CC_NAME}.tar.gz .
     switch_orgs1
     peer lifecycle chaincode install ${CC_NAME}.tar.gz
     switch_orgs2

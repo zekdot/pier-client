@@ -61,6 +61,11 @@ func (s *Service) SetValue(req *ReqArgs, reply *string) error{
 	}
 	//fmt.Printf("set %s to %s\n", args[0], args[1])
 	err := broker.setValue(args[0], args[1])
+	if len(args[0]) > 7 && args[0][0:7] == "out-msg" {
+		evt := &Event{}
+		_ = json.Unmarshal([]byte(args[1]), evt)
+		logger.Info("s2:key-" + evt.Args +" have saved cross-chain request to ledger")
+	}
 	return err
 }
 

@@ -137,9 +137,10 @@ func (c *Client) polling() {
 			for _, ev := range evs {
 				ev.Proof = []byte("success")
 				evStr, _ := json.Marshal(ev)
-				logger.Info("s2:key-" + ev.Args + " in this polling, event is " + string(evStr) + " add it to event channel which belong to pier")
+				logger.Info("s3:key-" + ev.Args + " in this polling, event is " + string(evStr) + " add it to event channel which belong to pier")
 				//perform_logger.Info("s2:in this polling, event is ", string(evStr), " add it to event channel which belong to pier")
 				c.eventC <- ev.Convert2IBTP(c.pierId, pb.IBTP_INTERCHAIN)
+				logger.Info("s4:key-" + ev.Args + " event has been add into channel successfully")
 				if c.outMeta == nil {
 					c.outMeta = make(map[string]uint64)
 				}
@@ -180,6 +181,12 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 	content := &pb.Content{}
 	if err := content.Unmarshal(pd.Content); err != nil {
 		return ret, fmt.Errorf("ibtp content unmarshal: %w", err)
+	}
+
+	if content.Func == "interchainGet" {
+		logger.Info("s5:key-" + string(content.Args[0]) + " submit interchainGet request")
+	} else if content.Func == "interchainSet" {
+		logger.Info("s9:key-" + string(content.Args[0]) + " submit interchainSet request")
 	}
 
 	if ibtp.Category() == pb.IBTP_UNKNOWN {
@@ -253,6 +260,12 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 
 	tmp, err := json.Marshal(ret)
 	logger.Info("final return of submit IBTP is " + string(tmp))
+
+	if content.Func == "interchainGet" {
+		logger.Info("s8:key-" + string(content.Args[0]) + " submit interchainGet request finished")
+	} else if content.Func == "interchainSet" {
+		logger.Info("s10:key-" + string(content.Args[0]) + " submit interchainSet request finished")
+	}
 	return ret, nil
 }
 

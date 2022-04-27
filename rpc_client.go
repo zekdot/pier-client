@@ -153,8 +153,9 @@ func (rpcClient *RpcClient) InvokeInterchain(sourceChainID, sequenceNum, targetC
 	var value = "unknown"
 	var err error
 	if callFunc.Func == "interchainGet"  {
-		logger.Info("s3:key-" + string(callFunc.Args[0]) + " submit interchainGet request")
+		logger.Info("s6:key-" + string(callFunc.Args[0]) + " try to get value from sawtooth")
 		value, err = rpcClient.GetData(string(callFunc.Args[0]))
+		logger.Info("s7:key-" + string(callFunc.Args[0]) + " get value from sawtooth successfully")
 		if err != nil {
 			return "", err
 		}
