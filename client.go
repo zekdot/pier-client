@@ -239,7 +239,9 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		// if there is callback function, parse returned value
 		result = toChaincodeArgs(strings.Split(string(resp.Data), ",")...)
 	}
-
+	if content.Func == "interchainSet" {
+		logger.Info("s10:key-" + string(content.Args[0]) + " submit interchainSet request finished")
+	}
 	// If is response IBTP, then simply return
 	if ibtp.Category() == pb.IBTP_RESPONSE {
 		return ret, nil
@@ -263,8 +265,6 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 
 	if content.Func == "interchainGet" {
 		logger.Info("s8:key-" + string(content.Args[0]) + " submit interchainGet request finished")
-	} else if content.Func == "interchainSet" {
-		logger.Info("s10:key-" + string(content.Args[0]) + " submit interchainSet request finished")
 	}
 	return ret, nil
 }
