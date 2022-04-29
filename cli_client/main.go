@@ -126,11 +126,11 @@ func GetClient(args Command, readFile bool) (*RpcClient, error) {
 	if url == "" {
 		//url = DEFAULT_URL
 	}
-	keyfile := ""
+	//keyfile := ""
 	if readFile {
 		var err error
-		keyfile, err = GetKeyfile(args.KeyfilePassed())
-		fmt.Printf("keyFile is %s", keyfile)
+		//keyfile, err = GetKeyfile(args.KeyfilePassed())
+		//fmt.Printf("keyFile is %s", keyfile)
 		if err != nil {
 			return nil, err
 		}
