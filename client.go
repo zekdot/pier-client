@@ -70,18 +70,6 @@ type CallFunc struct {
 
 func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 	eventC := make(chan *pb.IBTP)
-	//fabricConfig, err := UnmarshalConfig(configPath)
-	//if err != nil {
-	//	return fmt.Errorf("unmarshal config for plugin :%w", err)
-	//}
-	//
-	//contractmeta := &ContractMeta{
-	//	EventFilter: fabricConfig.EventFilter,
-	//	Username:    fabricConfig.Username,
-	//	CCID:        fabricConfig.CCID,
-	//	ChannelID:   fabricConfig.ChannelId,
-	//	ORG:         fabricConfig.Org,
-	//}
 
 	m := make(map[string]uint64)
 	if err := json.Unmarshal(extra, &m); err != nil {
@@ -91,24 +79,14 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 		m = make(map[string]uint64)
 	}
 
-	//mgh, err := newFabricHandler(contractmeta.EventFilter, eventC, pierId)
-	//if err != nil {
-	//	return err
-	//}
-
 	done := make(chan bool)
-	//csm, err := NewConsumer(configPath, contractmeta, mgh, done)
-	//if err != nil {
-	//	return err
-	//}
+
 	rpcClient, err := NewRpcClient(RPC_URL)
 	if err != nil {
 		logger.Error("dialing: ", err)
 	}
 	c.client = rpcClient
-	//c.consumer = csm
 	c.eventC = eventC
-	//c.meta = contractmeta
 	c.pierId = pierId
 	c.name = APPCHAIN_TYPE
 	c.outMeta = m
@@ -122,7 +100,6 @@ func (c *Client) Start() error {
 	logger.Info("Fabric consumer started")
 	go c.polling()
 	return nil
-	//return c.consumer.Start()
 }
 
 // polling event from broker
@@ -156,7 +133,6 @@ func (c *Client) polling() {
 func (c *Client) Stop() error {
 	c.ticker.Stop()
 	c.done <- true
-	//return c.consumer.Shutdown()
 	return nil
 }
 
@@ -211,13 +187,11 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 	}
 
 	var result [][]byte
-	//var chResp *channel.Response
 	callFunc := CallFunc{
 		Func: content.Func,
 		Args: content.Args,
 	}
 	bizData, err := json.Marshal(callFunc)
-	//logger.Info("s4:call concrete smart contract to execute cross-chain request")
 	if err != nil {
 		ret.Status = false
 		ret.Message = fmt.Sprintf("marshal ibtp %s func %s and args: %s", ibtp.ID(), callFunc.Func, err.Error())
@@ -274,14 +248,6 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 	if category == pb.IBTP_RESPONSE {
 		req = false
 	}
-	//args := util.ToChaincodeArgs(from, strconv.FormatUint(index, 10), destAddr, req)
-	//args = append(args, bizCallData)
-	//request := channel.Request{
-	//	ChaincodeID: c.meta.CCID,
-	//	Fcn:         InvokeInterchainMethod,
-	//	Args:        args,
-	//}
-
 	// retry executing
 	var res string
 	var err error
@@ -307,11 +273,7 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 		return nil, nil, err
 	}
 
-	//logger.Info("response", "cc status", strconv.Itoa(int(res.ChaincodeStatus)), "payload", string(res.Payload))
 	response := &Response{}
-	//if err := json.Unmarshal(res.Payload, response); err != nil {
-	//	return nil, nil, err
-	//}
 	response.Data = []byte(res)
 	response.OK = true
 	return nil, response, nil
@@ -424,9 +386,6 @@ func (c Client) InvokeIndexUpdate(from string, index uint64, category pb.IBTP_Ca
 		return nil, nil, err
 	}
 	response := &Response{}
-	//if err := json.Unmarshal(res.Payload, response); err != nil {
-	//	return nil, nil, err
-	//}
 	response.OK = true
 
 	return nil, response, nil
