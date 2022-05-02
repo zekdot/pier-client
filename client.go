@@ -10,6 +10,7 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/channel"
 	"github.com/meshplus/bitxhub-model/pb"
 	"github.com/meshplus/pier/pkg/plugins"
+	"github.com/syndtr/goleveldb/leveldb"
 	"os"
 	"strconv"
 	"strings"
@@ -61,6 +62,7 @@ type Client struct {
 	ticker   *time.Ticker
 	done     chan bool
 	client   *RpcClient
+	db 		 *leveldb.DB
 }
 
 type CallFunc struct {
@@ -92,6 +94,10 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 	c.outMeta = m
 	c.ticker = time.NewTicker(2 * time.Second)
 	c.done = done
+	c.db, err = NewDB(DB_PATH)
+	if err != nil {
+		logger.Error("create leveldb failed! ", err)
+	}
 
 	return nil
 }
@@ -132,6 +138,7 @@ func (c *Client) polling() {
 
 func (c *Client) Stop() error {
 	c.ticker.Stop()
+	c.db.Close()
 	c.done <- true
 	return nil
 }
@@ -280,7 +287,7 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 }
 
 func (c *Client) GetOutMessage(to string, idx uint64) (*pb.IBTP, error) {
-	ret, err := c.client.GetOutMessage(to, idx)
+	ret, err := c.GetOutMessageHelper(to, idx)
 	if err != nil {
 		return nil, err
 	}
@@ -288,19 +295,19 @@ func (c *Client) GetOutMessage(to string, idx uint64) (*pb.IBTP, error) {
 }
 
 func (c *Client) GetInMessage(from string, index uint64) ([][]byte, error) {
-	return c.client.GetInMessage(from, index)
+	return c.GetInMessageHelper(from, index)
 }
 
 func (c *Client) GetInMeta() (map[string]uint64, error) {
-	return c.client.GetInnerMeta()
+	return c.getMeta(inmeta)
 }
 
 func (c *Client) GetOutMeta() (map[string]uint64, error) {
-	return c.client.GetOuterMeta()
+	return c.getMeta(outmeta)
 }
 
 func (c Client) GetCallbackMeta() (map[string]uint64, error) {
-	return c.client.GetCallbackMeta()
+	return c.getMeta(callbackmeta)
 }
 
 func (c *Client) CommitCallback(ibtp *pb.IBTP) error {
@@ -364,7 +371,7 @@ func (c *Client) IncreaseInMeta(original *pb.IBTP) (*pb.IBTP, error) {
 }
 
 func (c *Client) GetReceipt(ibtp *pb.IBTP) (*pb.IBTP, error) {
-	result, err := c.GetInMessage(ibtp.From, ibtp.Index)
+	result, err := c.GetInMessageHelper(ibtp.From, ibtp.Index)
 	if err != nil {
 		return nil, err
 	}
@@ -381,8 +388,9 @@ func (c Client) InvokeIndexUpdate(from string, index uint64, category pb.IBTP_Ca
 	if category == pb.IBTP_RESPONSE {
 		req = false
 	}
-	err := c.client.InvokeIndexUpdate(from, strconv.FormatUint(index, 10), req)
-	if err != nil {
+	//err := c.client.InvokeIndexUpdate(from, strconv.FormatUint(index, 10), req)
+
+	if err := c.updateIndex(from, strconv.FormatUint(index, 10), req); err != nil {
 		return nil, nil, err
 	}
 	response := &Response{}
