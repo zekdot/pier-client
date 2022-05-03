@@ -113,7 +113,7 @@ func (c *Client) polling() {
 	for {
 		select {
 		case <-c.ticker.C:
-			evs, err := c.client.Polling(c.outMeta)
+			evs, err := c.pollingHelper(c.outMeta)
 			if err != nil {
 				return
 			}
@@ -259,7 +259,7 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 	var res string
 	var err error
 	if err := retry.Retry(func(attempt uint) error {
-		res, err = c.client.InvokeInterchain(from, strconv.FormatUint(index, 10), destAddr, req, bizCallData)
+		res, err = c.invokeInterchainHelper(from, strconv.FormatUint(index, 10), destAddr, req, bizCallData)
 		//res, err = c.consumer.ChannelClient.Execute(request)
 		logger.Info("res is " + res)
 		if err != nil {
@@ -287,7 +287,7 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 }
 
 func (c *Client) GetOutMessage(to string, idx uint64) (*pb.IBTP, error) {
-	ret, err := c.GetOutMessageHelper(to, idx)
+	ret, err := c.getOutMessageHelper(to, idx)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +295,7 @@ func (c *Client) GetOutMessage(to string, idx uint64) (*pb.IBTP, error) {
 }
 
 func (c *Client) GetInMessage(from string, index uint64) ([][]byte, error) {
-	return c.GetInMessageHelper(from, index)
+	return c.getInMessageHelper(from, index)
 }
 
 func (c *Client) GetInMeta() (map[string]uint64, error) {
@@ -371,7 +371,7 @@ func (c *Client) IncreaseInMeta(original *pb.IBTP) (*pb.IBTP, error) {
 }
 
 func (c *Client) GetReceipt(ibtp *pb.IBTP) (*pb.IBTP, error) {
-	result, err := c.GetInMessageHelper(ibtp.From, ibtp.Index)
+	result, err := c.getInMessageHelper(ibtp.From, ibtp.Index)
 	if err != nil {
 		return nil, err
 	}

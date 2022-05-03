@@ -36,7 +36,7 @@ func toChaincodeArgs(args ...string) [][]byte {
 
 /************* start of cross-chain related method area **************/
 
-func (c *Client) InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID string, isReq bool, bizCallData []byte) (string, error) {
+func (c *Client) invokeInterchainHelper(sourceChainID, sequenceNum, targetCID string, isReq bool, bizCallData []byte) (string, error) {
 
 	if err := c.updateIndex(sourceChainID, sequenceNum, isReq); err != nil {
 		return "", err
@@ -91,7 +91,7 @@ func (c *Client) InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID st
 	return value, nil
 }
 
-func (c *Client) Polling(m map[string]uint64) ([]*Event, error) {
+func (c *Client) pollingHelper(m map[string]uint64) ([]*Event, error) {
 	outMeta, err := c.getMeta(outmeta)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (c *Client) Polling(m map[string]uint64) ([]*Event, error) {
 			startPos = 0
 		}
 		for i := startPos + 1; i <= idx; i++ {
-			event, _ := c.GetOutMessageHelper(addr, i) // rpcClient.GetOutMessage(addr, i)
+			event, _ := c.getOutMessageHelper(addr, i) // rpcClient.GetOutMessage(addr, i)
 
 			events = append(events, event)
 		}
@@ -116,7 +116,7 @@ func (c *Client) Polling(m map[string]uint64) ([]*Event, error) {
 
 /************* start of meta-data related method area **************/
 
-func (c *Client) GetInMessageHelper(sourceChainID string, sequenceNum uint64)([][]byte, error) {
+func (c *Client) getInMessageHelper(sourceChainID string, sequenceNum uint64)([][]byte, error) {
 	key := inMsgKey(sourceChainID, strconv.FormatUint(sequenceNum, 10))
 	reply, err := c.db.Get([]byte(key), nil)
 	if err != nil {
@@ -128,7 +128,7 @@ func (c *Client) GetInMessageHelper(sourceChainID string, sequenceNum uint64)([]
 	return toChaincodeArgs(results...), nil
 }
 
-func (c *Client) GetOutMessageHelper(sourceChainID string, sequenceNum uint64)(*Event, error) {
+func (c *Client) getOutMessageHelper(sourceChainID string, sequenceNum uint64)(*Event, error) {
 	key := outMsgKey(sourceChainID, strconv.FormatUint(sequenceNum, 10))
 	reply, err := c.db.Get([]byte(key), nil)
 	if err != nil {

@@ -1,12 +1,7 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/prometheus/common/log"
 	"net/rpc"
-	"strconv"
-	"strings"
 )
 
 //const (
