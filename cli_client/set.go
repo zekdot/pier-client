@@ -40,7 +40,7 @@ func (args *Set) Run() error {
 	value := args.Args.Value
 	//wait := args.Wait
 
-	dsClient, err := GetClient(args, true)
+	dsClient, err := GetClient()
 	if err != nil {
 		return err
 	}

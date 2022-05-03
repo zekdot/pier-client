@@ -5,8 +5,6 @@ import (
 	"github.com/hyperledger/sawtooth-sdk-go/logging"
 	"github.com/jessevdk/go-flags"
 	"os"
-	"os/user"
-	"path"
 )
 
 // All subcommands implement this interface
@@ -104,49 +102,6 @@ func main() {
 	fmt.Println("Error: Command not found: ", name)
 }
 
-//func GetClient(args Command, readFile bool) (*BrokerClient, error) {
-//	url := args.UrlPassed()
-//	if url == "" {
-//		url = DEFAULT_URL
-//	}
-//	keyfile := ""
-//	if readFile {
-//		var err error
-//		keyfile, err = GetKeyfile(args.KeyfilePassed())
-//		fmt.Printf("keyFile is %s", keyfile)
-//		if err != nil {
-//			return &BrokerClient{}, err
-//		}
-//	}
-//	return NewBrokerClient(url, keyfile)
-//}
-
-func GetClient(args Command, readFile bool) (*RpcClient, error) {
-	url := args.UrlPassed()
-	if url == "" {
-		//url = DEFAULT_URL
-	}
-	//keyfile := ""
-	if readFile {
-		var err error
-		//keyfile, err = GetKeyfile(args.KeyfilePassed())
-		//fmt.Printf("keyFile is %s", keyfile)
-		if err != nil {
-			return nil, err
-		}
-	}
+func GetClient() (*RpcClient, error) {
 	return NewRpcClient(RPC_URL)
-}
-
-func GetKeyfile(keyfile string) (string, error) {
-	if keyfile == "" {
-		username, err := user.Current()
-		if err != nil {
-			return "", err
-		}
-		return path.Join(
-			username.HomeDir, ".sawtooth", "keys", username.Username+".priv"), nil
-	} else {
-		return keyfile, nil
-	}
 }

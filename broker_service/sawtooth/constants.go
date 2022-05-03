@@ -7,6 +7,7 @@ const (
 	DATA_NAMESPACE = "19d832"
 	META_NAMESPACE = "5978b3"
 	KEY_PATH = "/home/hzh/.sawtooth/keys/hzh.priv"
+	DB_PATH = "/home/hzh/.pier/meta-data"
 	RPC_PORT = "1212"
 
 	BATCH_SUBMIT_API string = "batches"

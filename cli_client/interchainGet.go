@@ -43,7 +43,7 @@ func (args *InterchainGet) Run() error {
 	//fmt.Printf("%s %s %s\n", toId, cid, key)
 	//wait := args.Wait
 
-	dsClient, err := GetClient(args, true)
+	dsClient, err := GetClient()
 	if err != nil {
 		return err
 	}

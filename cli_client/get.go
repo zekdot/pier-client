@@ -35,7 +35,7 @@ func (args *Get) Register(parent *flags.Command) error {
 func (args *Get) Run() error {
 	// Construct client
 	name := args.Args.Name
-	dsClient, err := GetClient(args, false)
+	dsClient, err := GetClient()
 	if err != nil {
 		return err
 	}
