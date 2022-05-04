@@ -85,7 +85,7 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 
 	rpcClient, err := NewRpcClient(RPC_URL)
 	if err != nil {
-		logger.Error("dialing: ", err)
+		logger.Error("dialing: ", err.Error())
 	}
 	c.client = rpcClient
 	c.eventC = eventC
@@ -96,7 +96,7 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 	c.done = done
 	c.db, err = NewDB(DB_PATH)
 	if err != nil {
-		logger.Error("create leveldb failed! ", err)
+		logger.Error("create leveldb failed! ", err.Error())
 	}
 
 	return nil
