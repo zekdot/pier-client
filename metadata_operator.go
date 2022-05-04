@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/prometheus/common/log"
+	"github.com/syndtr/goleveldb/leveldb"
 	"strconv"
 	"strings"
 )
@@ -44,7 +44,7 @@ func (c *Client) invokeInterchainHelper(sourceChainID, sequenceNum, targetCID st
 
 	splitedCID := strings.Split(targetCID, delimiter)
 	if len(splitedCID) != 2 {
-		return "", fmt.Errorf("Target chaincode id %s is not valid", targetCID)
+		return "", fmt.Errorf("target chaincode id %s is not valid", targetCID)
 	}
 
 	callFunc := &CallFunc{}
@@ -80,9 +80,7 @@ func (c *Client) invokeInterchainHelper(sourceChainID, sequenceNum, targetCID st
 		}
 	}
 
-
 	inKey := inMsgKey(sourceChainID, sequenceNum)
-	//value, err := json.Marshal(response)
 	err = c.db.Put([]byte(inKey), []byte(value), nil)
 	if err != nil {
 		return "", err

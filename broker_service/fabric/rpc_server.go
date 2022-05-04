@@ -7,14 +7,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"os"
 	"strconv"
-
-	//"github.com/wonderivan/logger"
-
-	//"github.com/hashicorp/go-hclog"
-	//"os"
 )
 const (
-	delimiter = "&"
 	outmeta = "outter-meta"
 	inmeta = "inner-meta"
 	callbackmeta = "callback-meta"
@@ -71,22 +65,9 @@ func NewService(broker *BrokerClient) *Service {
 
 // send transaction and don't need result
 func (s *Service) SetValue(req *ReqArgs, reply *string) error{
-
 	broker := s.broker
 	args := req.Args
-	// if this is a outer cross-chain request
-	if len(args[0]) > 7 && args[0][0:7] == "out-msg" {
-		evt := &Event{}
-		_ = json.Unmarshal([]byte(args[1]), evt)
-		logger.Info("s1:key-" + evt.Args +" save cross-chain request to ledger")
-	}
-	//fmt.Printf("set %s to %s\n", args[0], args[1])
 	err := broker.setValue(args[0], args[1])
-	if len(args[0]) > 7 && args[0][0:7] == "out-msg" {
-		evt := &Event{}
-		_ = json.Unmarshal([]byte(args[1]), evt)
-		logger.Info("s2:key-" + evt.Args +" have saved cross-chain request to ledger")
-	}
 	return err
 }
 
@@ -94,7 +75,6 @@ func (s *Service) SetValue(req *ReqArgs, reply *string) error{
 func (s *Service) GetValue(req *ReqArgs, reply *string) error{
 	broker := s.broker
 	args := req.Args
-	//fmt.Printf("get value of %s\n", args[0])
 	res, err := broker.getValue(args[0])
 	*reply = string(res)
 	return err
@@ -134,7 +114,6 @@ func (s *Service) InterchainGet(req *ReqArgs, reply *string) error {
 		outMeta[destChainID] = 0
 	}
 
-	//cid, err := getChaincodeID(stub)
 	cid := "mychannel&broker"
 	if err != nil {
 		return err
@@ -160,18 +139,17 @@ func (s *Service) InterchainGet(req *ReqArgs, reply *string) error {
 		return err
 	}
 
-	// use batch update
-
 	// persist out message
 	outKey := outMsgKey(tx.DstChainID, strconv.FormatUint(tx.Index, 10))
 	metaBytes, err := json.Marshal(outMeta)
 
 	logger.Info("s1:key-" + key +" save cross-chain request to ledger")
+
+	// use batch update
 	batch := new(leveldb.Batch)
 	batch.Put([]byte(outKey), txValue)
 	batch.Put([]byte(outmeta), metaBytes)
 	defer logger.Info("s2:key-" + key +" have saved cross-chain request to ledger")
-
 
 	return s.db.Write(batch, nil)
 }
