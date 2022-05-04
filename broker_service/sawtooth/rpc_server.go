@@ -1,20 +1,11 @@
 package main
 
 import (
-
 	"encoding/json"
-	"fmt"
 	"github.com/hashicorp/go-hclog"
-	"github.com/syndtr/goleveldb/leveldb"
 	"os"
-	"strconv"
 )
-const (
-	delimiter = "&"
-	outmeta = "outter-meta"
-	inmeta = "inner-meta"
-	callbackmeta = "callback-meta"
-)
+
 var (
 	logger = hclog.New(&hclog.LoggerOptions{
 		Name:   "performance",
@@ -38,21 +29,12 @@ type Event struct {
 }
 type Service struct {
 	broker *BrokerClient
-	db *leveldb.DB
+	db *DB
 }
-
 
 type ReqArgs struct {
 	FuncName string
 	Args []string
-}
-
-func NewDB(path string) (*leveldb.DB, error) {
-	db, err := leveldb.OpenFile(path, nil)
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
 }
 
 func NewService(broker *BrokerClient) *Service {
@@ -70,9 +52,6 @@ func NewService(broker *BrokerClient) *Service {
 func (s *Service) SetValue(req *ReqArgs, reply *string) error{
 	broker := s.broker
 	args := req.Args
-	// if this is a outer cross-chain request
-
-	//fmt.Printf("set %s to %s\n", args[0], args[1])
 	err := broker.setValue(args[0], args[1])
 	return err
 }
@@ -81,29 +60,14 @@ func (s *Service) SetValue(req *ReqArgs, reply *string) error{
 func (s *Service) GetValue(req *ReqArgs, reply *string) error{
 	broker := s.broker
 	args := req.Args
-	//fmt.Printf("get value of %s\n", args[0])
 	res, err := broker.getValue(args[0])
 	*reply = string(res)
 	return err
 }
 
-func outMsgKey(to string, idx string) string {
-	return fmt.Sprintf("out-msg-%s-%s", to, idx)
-}
-
 // query transaction and need result
 func (s *Service) Init(req *ReqArgs, reply *string) error{
-	emptyMap := make(map[string]uint64)
-	var emptyMapBytes []byte
-	emptyMapBytes, err := json.Marshal(emptyMap)
-	if err != nil {
-		return err
-	}
-	batch := new(leveldb.Batch)
-	batch.Put([]byte(inmeta), emptyMapBytes)
-	batch.Put([]byte(outmeta), emptyMapBytes)
-	batch.Put([]byte(callbackmeta), emptyMapBytes)
-	return s.db.Write(batch, nil)
+	return s.db.Init()
 }
 
 func (s *Service) InterchainGet(req *ReqArgs, reply *string) error {
@@ -115,51 +79,82 @@ func (s *Service) InterchainGet(req *ReqArgs, reply *string) error {
 
 	logger.Info("s1:key-" + key +" save cross-chain request to ledger")
 
-	outMetaBytes, err := s.db.Get([]byte(outmeta), nil)// rpcClient.GetOuterMeta()
-	outMeta := make(map[string]uint64)
-	if err = json.Unmarshal(outMetaBytes, outMeta); err != nil {
-		return err
-	}
-	if _, ok := outMeta[destChainID]; !ok {
-		outMeta[destChainID] = 0
-	}
-
-	//cid, err := getChaincodeID(stub)
-	cid := "mychannel&broker"
-	if err != nil {
-		return err
-	}
-	// toId, contractId, "interchainGet", key, "interchainSet", key, "", ""
-	tx := &Event{
-		Index:         outMeta[destChainID] + 1,
-		DstChainID:    destChainID,
-		SrcContractID: cid,
-		DstContractID: contractId,
-		Func:          "interchainGet",
-		Args:          key,
-		Callback:      "interchainSet",
-		Argscb:        key,
-		Rollback:      "",
-		Argsrb:        "",
-	}
-
-	outMeta[tx.DstChainID]++
-
-	txValue, err := json.Marshal(tx)
-	if err != nil {
-		return err
-	}
-
-	// persist out message
-	outKey := outMsgKey(tx.DstChainID, strconv.FormatUint(tx.Index, 10))
-	metaBytes, err := json.Marshal(outMeta)
-
-
-	// use batch update
-	batch := new(leveldb.Batch)
-	batch.Put([]byte(outKey), txValue)
-	batch.Put([]byte(outmeta), metaBytes)
 	defer logger.Info("s2:key-" + key +" have saved cross-chain request to ledger")
 
-	return s.db.Write(batch, nil)
+	return s.db.InterchainGet(destChainID, contractId, key)
+}
+
+
+
+func (s *Service) GetMeta(req *ReqArgs, reply *string) error {
+	args := req.Args
+
+	key := args[0]
+
+	value, err := s.db.GetMetaStr(key)
+	if err != nil {
+		return err
+	}
+	*reply = value
+	return nil
+}
+
+func (s *Service) PollingHelper(req *ReqArgs, reply *string) error {
+	args := req.Args
+
+	mStr := args[0]
+
+	m := make(map[string]uint64)
+	json.Unmarshal([]byte(mStr), &m)
+
+	evs, err := s.db.PollingEvents(m)
+	if err != nil {
+		return err
+	}
+	evsStr, err := json.Marshal(evs)
+	*reply = string(evsStr)
+	return err
+}
+
+func (s *Service) GetInMessageStrByKey(req *ReqArgs, reply *string) error {
+	args := req.Args
+	key := args[0]
+	var err error
+	*reply, err = s.db.GetInMessageStrByKey(key)
+	return err
+}
+
+func (s *Service) GetOutMessageStrByKey(req *ReqArgs, reply *string) error {
+	args := req.Args
+	key := args[0]
+	var err error
+	*reply, err = s.db.GetOutMessageStrByKey(key)
+	return err
+}
+
+func (s *Service) InvokeInterchainHelper(req *ReqArgs, reply *string) error {
+	args := req.Args
+	sourceChainID := args[0]
+	sequenceNum := args[1]
+	targetCID := args[2]
+	isReq := args[3]
+	funcName := args[4]
+	key := args[5]
+	var value string
+	if len(args) > 6 {
+		value = args[6]
+	} else {
+		value = ""
+	}
+	var err error
+	*reply, err = s.db.InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isReq, funcName, key, value, s.broker)
+	return err
+}
+
+func (s *Service) UpdateIndexHelper(req *ReqArgs, reply *string) error {
+	args := req.Args
+	sourceChainID := args[0]
+	sequenceNum := args[1]
+	isReq := args[2]
+	return s.db.UpdateIndex(sourceChainID, sequenceNum, isReq)
 }

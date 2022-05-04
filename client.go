@@ -10,13 +10,17 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/channel"
 	"github.com/meshplus/bitxhub-model/pb"
 	"github.com/meshplus/pier/pkg/plugins"
-	"github.com/syndtr/goleveldb/leveldb"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 )
-
+const (
+	delimiter = "&"
+	outmeta = "outter-meta"
+	inmeta = "inner-meta"
+	callbackmeta = "callback-meta"
+)
 var (
 	logger = hclog.New(&hclog.LoggerOptions{
 		Name:   "client",
@@ -62,7 +66,6 @@ type Client struct {
 	ticker   *time.Ticker
 	done     chan bool
 	client   *RpcClient
-	db 		 *leveldb.DB
 }
 
 type CallFunc struct {
@@ -94,7 +97,6 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 	c.outMeta = m
 	c.ticker = time.NewTicker(2 * time.Second)
 	c.done = done
-	c.db, err = NewDB(DB_PATH)
 	if err != nil {
 		logger.Error("create leveldb failed! ", err.Error())
 	}
@@ -113,7 +115,7 @@ func (c *Client) polling() {
 	for {
 		select {
 		case <-c.ticker.C:
-			evs, err := c.pollingHelper(c.outMeta)
+			evs, err := c.client.PollingHelper(c.outMeta)
 			if err != nil {
 				return
 			}
@@ -138,7 +140,6 @@ func (c *Client) polling() {
 
 func (c *Client) Stop() error {
 	c.ticker.Stop()
-	c.db.Close()
 	c.done <- true
 	return nil
 }
@@ -259,7 +260,7 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 	var res string
 	var err error
 	if err := retry.Retry(func(attempt uint) error {
-		res, err = c.invokeInterchainHelper(from, strconv.FormatUint(index, 10), destAddr, req, bizCallData)
+		res, err = c.client.InvokeInterchainHelper(from, strconv.FormatUint(index, 10), destAddr, req, bizCallData)
 		//res, err = c.consumer.ChannelClient.Execute(request)
 		logger.Info("res is " + res)
 		if err != nil {
@@ -287,7 +288,7 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 }
 
 func (c *Client) GetOutMessage(to string, idx uint64) (*pb.IBTP, error) {
-	ret, err := c.getOutMessageHelper(to, idx)
+	ret, err := c.client.GetOutMessageHelper(to, idx)
 	if err != nil {
 		return nil, err
 	}
@@ -295,19 +296,19 @@ func (c *Client) GetOutMessage(to string, idx uint64) (*pb.IBTP, error) {
 }
 
 func (c *Client) GetInMessage(from string, index uint64) ([][]byte, error) {
-	return c.getInMessageHelper(from, index)
+	return c.client.GetInMessageHelper(from, index)
 }
 
 func (c *Client) GetInMeta() (map[string]uint64, error) {
-	return c.getMeta(inmeta)
+	return c.client.GetMeta(inmeta)
 }
 
 func (c *Client) GetOutMeta() (map[string]uint64, error) {
-	return c.getMeta(outmeta)
+	return c.client.GetMeta(outmeta)
 }
 
 func (c Client) GetCallbackMeta() (map[string]uint64, error) {
-	return c.getMeta(callbackmeta)
+	return c.client.GetMeta(callbackmeta)
 }
 
 func (c *Client) CommitCallback(ibtp *pb.IBTP) error {
@@ -371,7 +372,7 @@ func (c *Client) IncreaseInMeta(original *pb.IBTP) (*pb.IBTP, error) {
 }
 
 func (c *Client) GetReceipt(ibtp *pb.IBTP) (*pb.IBTP, error) {
-	result, err := c.getInMessageHelper(ibtp.From, ibtp.Index)
+	result, err := c.client.GetInMessageHelper(ibtp.From, ibtp.Index)
 	if err != nil {
 		return nil, err
 	}
@@ -390,7 +391,7 @@ func (c Client) InvokeIndexUpdate(from string, index uint64, category pb.IBTP_Ca
 	}
 	//err := c.client.InvokeIndexUpdate(from, strconv.FormatUint(index, 10), req)
 
-	if err := c.updateIndex(from, strconv.FormatUint(index, 10), req); err != nil {
+	if err := c.client.UpdateIndexHelper(from, strconv.FormatUint(index, 10), strconv.FormatBool(req)); err != nil {
 		return nil, nil, err
 	}
 	response := &Response{}
