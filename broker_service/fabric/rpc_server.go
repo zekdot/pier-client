@@ -105,6 +105,9 @@ func (s *Service) InterchainGet(req *ReqArgs, reply *string) error {
 	destChainID := args[0]
 	contractId := args[1]
 	key := args[2]
+
+	logger.Info("s1:key-" + key +" save cross-chain request to ledger")
+
 	outMetaBytes, err := s.db.Get([]byte(outmeta), nil)// rpcClient.GetOuterMeta()
 	outMeta := make(map[string]uint64)
 	if err = json.Unmarshal(outMetaBytes, outMeta); err != nil {
@@ -142,8 +145,6 @@ func (s *Service) InterchainGet(req *ReqArgs, reply *string) error {
 	// persist out message
 	outKey := outMsgKey(tx.DstChainID, strconv.FormatUint(tx.Index, 10))
 	metaBytes, err := json.Marshal(outMeta)
-
-	logger.Info("s1:key-" + key +" save cross-chain request to ledger")
 
 	// use batch update
 	batch := new(leveldb.Batch)
