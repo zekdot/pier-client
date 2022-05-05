@@ -48,7 +48,7 @@ func (db *DB) InterchainGet(destChainID, contractId, key string) error {
 
 	outMetaBytes, err := db.db.Get([]byte(outmeta), nil)// rpcClient.GetOuterMeta()
 	outMeta := make(map[string]uint64)
-	if err = json.Unmarshal(outMetaBytes, outMeta); err != nil {
+	if err = json.Unmarshal(outMetaBytes, &outMeta); err != nil {
 		return err
 	}
 	if _, ok := outMeta[destChainID]; !ok {
@@ -128,7 +128,7 @@ func (db *DB) GetOutMessageHelper(sourceChainID string, sequenceNum uint64)(*Eve
 		return nil, err
 	}
 	ret := &Event{}
-	if err := json.Unmarshal(reply, ret); err != nil {
+	if err := json.Unmarshal(reply, &ret); err != nil {
 		return nil, err
 	}
 	return ret, nil

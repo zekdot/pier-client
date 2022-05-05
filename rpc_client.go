@@ -117,7 +117,7 @@ func (rpcClient *RpcClient) InvokeInterchainHelper(sourceChainID, sequenceNum, t
 	isReqStr := strconv.FormatBool(isReq)
 
 	callFunc := &CallFunc{}
-	if err := json.Unmarshal(bizCallData, callFunc); err != nil {
+	if err := json.Unmarshal(bizCallData, &callFunc); err != nil {
 		return "", fmt.Errorf("unmarshal call func failed for %s", string(bizCallData))
 	}
 	funcName := callFunc.Func

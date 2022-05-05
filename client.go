@@ -97,9 +97,9 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 	c.outMeta = m
 	c.ticker = time.NewTicker(2 * time.Second)
 	c.done = done
-	if err != nil {
-		logger.Error("create leveldb failed! ", err.Error())
-	}
+	//if err  != nil {
+	//	logger.Error("create leveldb failed! ", err.Error())
+	//}
 
 	return nil
 }
@@ -402,7 +402,7 @@ func (c Client) InvokeIndexUpdate(from string, index uint64, category pb.IBTP_Ca
 
 func (c *Client) unpackIBTP(response *channel.Response, ibtpType pb.IBTP_Type) (*pb.IBTP, error) {
 	ret := &Event{}
-	if err := json.Unmarshal(response.Payload, ret); err != nil {
+	if err := json.Unmarshal(response.Payload, &ret); err != nil {
 		return nil, err
 	}
 
