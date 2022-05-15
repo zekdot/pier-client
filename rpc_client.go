@@ -112,7 +112,7 @@ func (rpcClient *RpcClient) GetOutMessageHelper(sourceChainID string, sequenceNu
 	return res, nil
 }
 
-func (rpcClient *RpcClient) InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID string, isReq bool, bizCallData []byte) (string, error) {
+func (rpcClient *RpcClient) InvokeInterchainHelper(writeC chan ReqArgs, sourceChainID, sequenceNum, targetCID string, isReq bool, bizCallData []byte) (string, error) {
 
 	isReqStr := strconv.FormatBool(isReq)
 
@@ -132,16 +132,18 @@ func (rpcClient *RpcClient) InvokeInterchainHelper(sourceChainID, sequenceNum, t
 		value = strings.Join(valuePart, ",")
 	}
 
-	var reply string
+	//var reply string
 
 	reqArgs := ReqArgs{
 		"InvokeInterchainHelper",
 		[]string{sourceChainID, sequenceNum, targetCID, isReqStr, funcName, key, value},
 	}
-	if err := rpcClient.client.Call("Service.InvokeInterchainHelper", reqArgs, &reply); err != nil {
-		return "", err
-	}
-	return reply, nil
+	writeC <- reqArgs
+	return "success", nil
+	//if err := rpcClient.client.Call("Service.InvokeInterchainHelper", reqArgs, &reply); err != nil {
+	//	return "", err
+	//}
+	//return reply, nil
 }
 
 func (rpcClient *RpcClient) UpdateIndexHelper(sourceChainID, sequenceNum, isReq string)  error {

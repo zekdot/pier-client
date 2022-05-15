@@ -60,6 +60,7 @@ type Client struct {
 	meta     *ContractMeta
 	//consumer *Consumer
 	eventC   chan *pb.IBTP
+	writeC   chan ReqArgs
 	pierId   string
 	name     string
 	outMeta  map[string]uint64
@@ -85,6 +86,7 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 	}
 
 	done := make(chan bool)
+	c.writeC = make(chan ReqArgs, 2000)
 
 	rpcClient, err := NewRpcClient(RPC_URL)
 	if err != nil {
@@ -107,7 +109,19 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 func (c *Client) Start() error {
 	logger.Info("Fabric consumer started")
 	go c.polling()
+	go c.writeToLedger()
 	return nil
+}
+
+func (c *Client) writeToLedger() {
+	for {
+		var reply string
+		reqArgs := <- c.writeC
+		if err := c.client.client.Call("Service.InvokeInterchainHelper", reqArgs, &reply); err != nil {
+			logger.Error("when write message to ledger, there is an error: " + err.Error())
+		}
+		//return reply, nil
+	}
 }
 
 // polling event from broker
@@ -260,7 +274,7 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 	var res string
 	var err error
 	if err := retry.Retry(func(attempt uint) error {
-		res, err = c.client.InvokeInterchainHelper(from, strconv.FormatUint(index, 10), destAddr, req, bizCallData)
+		res, err = c.client.InvokeInterchainHelper(c.writeC, from, strconv.FormatUint(index, 10), destAddr, req, bizCallData)
 		//res, err = c.consumer.ChannelClient.Execute(request)
 		logger.Info("res is " + res)
 		if err != nil {
