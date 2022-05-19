@@ -213,7 +213,7 @@ func (db *DB) InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isRe
 			return "", err
 		}
 	} else if funcName == "interchainSet" {
-		logger.Info("s4:key-" + key + " submit interchainSet request")
+		//logger.Info("s4:key-" + key + " submit interchainSet request")
 		err = client.setValue(key, value)
 		if err != nil {
 			return "", err

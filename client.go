@@ -97,7 +97,8 @@ func (c *Client) Initialize(configPath, pierId string, extra []byte) error {
 	c.pierId = pierId
 	c.name = APPCHAIN_TYPE
 	c.outMeta = m
-	c.ticker = time.NewTicker(2 * time.Second)
+	//c.ticker = time.NewTicker(2 * time.Second)
+	c.ticker = time.NewTicker(500 * time.Millisecond)
 	c.done = done
 	//if err  != nil {
 	//	logger.Error("create leveldb failed! ", err.Error())
