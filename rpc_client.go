@@ -123,6 +123,9 @@ func (rpcClient *RpcClient) InvokeInterchainHelper(writeC chan ReqArgs, sourceCh
 	funcName := callFunc.Func
 	key := string(callFunc.Args[0])
 	var value = ""
+
+
+
 	if callFunc.Func == "interchainSet" {
 		// concat all args except first arg with comma
 		var valuePart = make([]string, 0)
@@ -130,15 +133,27 @@ func (rpcClient *RpcClient) InvokeInterchainHelper(writeC chan ReqArgs, sourceCh
 			valuePart = append(valuePart, string(arg))
 		}
 		value = strings.Join(valuePart, ",")
+		//return value, nil
+		reqArgs := ReqArgs{
+			"InvokeInterchainHelper",
+			[]string{sourceChainID, sequenceNum, targetCID, isReqStr, funcName, key, value},
+		}
+		writeC <- reqArgs
 	}
 
+	if callFunc.Func == "interchainGet" {
+		reqArgs := ReqArgs{
+			"InvokeInterchainHelper",
+			[]string{sourceChainID, sequenceNum, targetCID, isReqStr, funcName, key, value},
+		}
+		var reply string
+		if err := rpcClient.client.Call("Service.InvokeInterchainHelper", reqArgs, &reply); err != nil {
+			return "", err
+		}
+		return reply, nil
+	}
 	//var reply string
 
-	reqArgs := ReqArgs{
-		"InvokeInterchainHelper",
-		[]string{sourceChainID, sequenceNum, targetCID, isReqStr, funcName, key, value},
-	}
-	writeC <- reqArgs
 	return "success", nil
 	//if err := rpcClient.client.Call("Service.InvokeInterchainHelper", reqArgs, &reply); err != nil {
 	//	return "", err

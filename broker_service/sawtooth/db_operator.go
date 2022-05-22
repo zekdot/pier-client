@@ -203,7 +203,7 @@ func (db *DB) InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isRe
 		logger.Info("s6:key-" + key + " try to get value from sawtooth")
 		valueBytes, err = client.getValue(key)
 		res = string(valueBytes)
-		logger.Info("s7:key-" + key + " get value from sawtooth successfully")
+		logger.Info("s7:key-" + key + " get value" + res + "from sawtooth successfully")
 		if err != nil {
 			return "", err
 		}
