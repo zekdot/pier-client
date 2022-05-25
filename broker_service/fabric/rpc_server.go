@@ -77,9 +77,9 @@ func (s *Service) InterchainGet(req *ReqArgs, reply *string) error {
 	contractId := args[1]
 	key := args[2]
 
-	logger.Info("s1:key-" + key +" save cross-chain request to ledger")
+	logger.Info("s1:key-" + key + " save cross-chain request to ledger")
 
-	defer logger.Info("s2:key-" + key +" have saved cross-chain request to ledger")
+	defer logger.Info("s2:key-" + key + " have saved cross-chain request to ledger")
 
 	return s.db.InterchainGet(destChainID, contractId, key)
 }
