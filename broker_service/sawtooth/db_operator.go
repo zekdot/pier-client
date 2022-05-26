@@ -43,8 +43,56 @@ func (db *DB) Init() error {
 	batch.Put([]byte(callbackmeta), emptyMapBytes)
 	return db.db.Write(batch, nil)
 }
+//
+//func (db *DB) InterchainGet(destChainID, contractId, key string) error {
+//
+//	outMetaBytes, err := db.db.Get([]byte(outmeta), nil)// rpcClient.GetOuterMeta()
+//	outMeta := make(map[string]uint64)
+//	if err = json.Unmarshal(outMetaBytes, &outMeta); err != nil {
+//		return err
+//	}
+//	if _, ok := outMeta[destChainID]; !ok {
+//		outMeta[destChainID] = 0
+//	}
+//
+//	cid := "mychannel&broker"
+//	if err != nil {
+//		return err
+//	}
+//	// toId, contractId, "interchainGet", key, "interchainSet", key, "", ""
+//	tx := &Event{
+//		Index:         outMeta[destChainID] + 1,
+//		DstChainID:    destChainID,
+//		SrcContractID: cid,
+//		DstContractID: contractId,
+//		Func:          "interchainGet",
+//		Args:          key,
+//		Callback:      "interchainSet",
+//		Argscb:        key,
+//		Rollback:      "",
+//		Argsrb:        "",
+//	}
+//
+//	outMeta[tx.DstChainID]++
+//
+//	txValue, err := json.Marshal(tx)
+//	if err != nil {
+//		return err
+//	}
+//
+//	// persist out message
+//	outKey := outMsgKey(tx.DstChainID, strconv.FormatUint(tx.Index, 10))
+//	metaBytes, err := json.Marshal(outMeta)
+//
+//	// use batch update
+//	batch := new(leveldb.Batch)
+//	batch.Put([]byte(outKey), txValue)
+//	batch.Put([]byte(outmeta), metaBytes)
+//
+//	return db.db.Write(batch, nil)
+//}
 
-func (db *DB) InterchainGet(destChainID, contractId, key string) error {
+func (db *DB) SaveInterchainReq(destChainID string, tx *Event) error {
 
 	outMetaBytes, err := db.db.Get([]byte(outmeta), nil)// rpcClient.GetOuterMeta()
 	outMeta := make(map[string]uint64)
@@ -55,23 +103,11 @@ func (db *DB) InterchainGet(destChainID, contractId, key string) error {
 		outMeta[destChainID] = 0
 	}
 
-	cid := "mychannel&broker"
 	if err != nil {
 		return err
 	}
 	// toId, contractId, "interchainGet", key, "interchainSet", key, "", ""
-	tx := &Event{
-		Index:         outMeta[destChainID] + 1,
-		DstChainID:    destChainID,
-		SrcContractID: cid,
-		DstContractID: contractId,
-		Func:          "interchainGet",
-		Args:          key,
-		Callback:      "interchainSet",
-		Argscb:        key,
-		Rollback:      "",
-		Argsrb:        "",
-	}
+	tx.Index = outMeta[destChainID] + 1
 
 	outMeta[tx.DstChainID]++
 
@@ -120,6 +156,19 @@ func (db *DB) PollingEvents(m map[string]uint64) ([]*Event, error) {
 func outMsgKey(to string, idx string) string {
 	return fmt.Sprintf("out-msg-%s-%s", to, idx)
 }
+
+//func (db *DB) UpdateOutMetaData(destChainID, idx, outMessage string) error {
+//	outMetaBytes, err := db.db.Get([]byte(outmeta), nil)// rpcClient.GetOuterMeta()
+//	outMeta := make(map[string]uint64)
+//	if err = json.Unmarshal(outMetaBytes, &outMeta); err != nil {
+//		return err
+//	}
+//	if _, ok := outMeta[destChainID]; !ok {
+//		outMeta[destChainID] = 0
+//	}
+//
+//
+//}
 
 func (db *DB) GetOutMessageHelper(sourceChainID string, sequenceNum uint64)(*Event, error) {
 	key := outMsgKey(sourceChainID, strconv.FormatUint(sequenceNum, 10))
@@ -203,7 +252,7 @@ func (db *DB) InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isRe
 		logger.Info("s6:key-" + key + " try to get value from sawtooth")
 		valueBytes, err = client.getValue(key)
 		res = string(valueBytes)
-		logger.Info("s7:key-" + key + " get value" + res + "from sawtooth successfully")
+		logger.Info("s7:key-" + key + " get value " + res + " from sawtooth successfully")
 		if err != nil {
 			return "", err
 		}

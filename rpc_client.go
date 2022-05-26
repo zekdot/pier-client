@@ -6,6 +6,7 @@ import (
 	"net/rpc"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type RpcClient struct {
@@ -112,6 +113,55 @@ func (rpcClient *RpcClient) GetOutMessageHelper(sourceChainID string, sequenceNu
 	return res, nil
 }
 
+func MultiRead(threadNum int, keys []string, sourceChainID, sequenceNum, targetCID, isReqStr string, client *rpc.Client) (string, error) {
+	//threadNum := 10
+	ch := make(chan string, len(keys))
+	//done := make(chan bool, 5)
+	res := make([][]string, len(keys))
+	var wg sync.WaitGroup
+	wg.Add(threadNum)
+	for j := 0; j < threadNum; j ++ {
+		go func(index uint64) {
+			var key string
+			for true {
+				select {
+				case key =<- ch:
+					if key == "done" {
+						//fmt.Println("进程" + strconv.FormatUint(index, 10) + "结束")
+						wg.Done()
+						return
+					}
+					reqArgs := ReqArgs{
+						"InvokeInterchainHelper",
+						[]string{sourceChainID, sequenceNum, targetCID, isReqStr, "interchainGet", key, ""},
+					}
+					var reply string
+
+					if err := client.Call("Service.InvokeInterchainHelper", reqArgs, &reply); err != nil {
+						logger.Error(err.Error())
+					}
+					res = append(res, []string{key, reply})
+					//fmt.Println("处理" + key)
+					//time.Sleep(1 * time.Millisecond)
+				}
+			}
+
+		}(uint64(j))
+	}
+	for _, key := range keys {
+		ch <- key
+	}
+	for j := 0; j < threadNum; j ++ {
+		ch <- "done"
+	}
+	wg.Wait()
+	resStr, err := json.Marshal(res)
+	if err != nil {
+		return "", err
+	}
+	return string(resStr), nil
+}
+
 func (rpcClient *RpcClient) InvokeInterchainHelper(writeC chan ReqArgs, sourceChainID, sequenceNum, targetCID string, isReq bool, bizCallData []byte) (string, error) {
 
 	isReqStr := strconv.FormatBool(isReq)
@@ -120,34 +170,42 @@ func (rpcClient *RpcClient) InvokeInterchainHelper(writeC chan ReqArgs, sourceCh
 	if err := json.Unmarshal(bizCallData, &callFunc); err != nil {
 		return "", fmt.Errorf("unmarshal call func failed for %s", string(bizCallData))
 	}
-	funcName := callFunc.Func
-	key := string(callFunc.Args[0])
+	//funcName := callFunc.Func
+	//key := string(callFunc.Args[0])
 	var value = ""
 
+	var valuePart = make([]string, 0)
+	for _, arg := range callFunc.Args {
+		valuePart = append(valuePart, string(arg))
+	}
+	value = strings.Join(valuePart, ",")
+
+	if callFunc.Func == "bundleResponse" {
+		// concat all args
+		kvpairs := make([][]string, 0)
+		err := json.Unmarshal([]byte(value), kvpairs)
+		if err != nil {
+			return "", err
+		}
+		for _, kv := range kvpairs {
+			reqArgs := ReqArgs {
+				"InvokeInterchainHelper",
+				[]string{sourceChainID, sequenceNum, targetCID, isReqStr, "interchainSet", kv[0], kv[1]},
+			}
+			writeC <- reqArgs
+		}
 
 
-	if callFunc.Func == "interchainSet" {
-		// concat all args except first arg with comma
-		var valuePart = make([]string, 0)
-		for _, arg := range callFunc.Args[1:] {
-			valuePart = append(valuePart, string(arg))
-		}
-		value = strings.Join(valuePart, ",")
-		//return value, nil
-		reqArgs := ReqArgs{
-			"InvokeInterchainHelper",
-			[]string{sourceChainID, sequenceNum, targetCID, isReqStr, funcName, key, value},
-		}
-		writeC <- reqArgs
 	}
 
-	if callFunc.Func == "interchainGet" {
-		reqArgs := ReqArgs{
-			"InvokeInterchainHelper",
-			[]string{sourceChainID, sequenceNum, targetCID, isReqStr, funcName, key, value},
+	if callFunc.Func == "bundleRequest" {
+		keys := make([]string, 0)
+		if err := json.Unmarshal([]byte(value), keys); err != nil {
+			return "", err
 		}
-		var reply string
-		if err := rpcClient.client.Call("Service.InvokeInterchainHelper", reqArgs, &reply); err != nil {
+
+		reply, err := MultiRead(10, keys, sourceChainID, sequenceNum, targetCID, isReqStr, rpcClient.client)
+		if err != nil {
 			return "", err
 		}
 		return reply, nil

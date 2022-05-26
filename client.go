@@ -137,10 +137,10 @@ func (c *Client) polling() {
 			for _, ev := range evs {
 				ev.Proof = []byte("success")
 				evStr, _ := json.Marshal(ev)
-				logger.Info("s3:key-" + ev.Args + " in this polling, event is " + string(evStr) + " add it to event channel which belong to pier")
+				logger.Info("s3:key-" + ev.Args + " index-" + strconv.FormatUint(ev.Index, 10) + " in this polling, event is " + string(evStr) + " add it to event channel which belong to pier")
 				//perform_logger.Info("s2:in this polling, event is ", string(evStr), " add it to event channel which belong to pier")
 				c.eventC <- ev.Convert2IBTP(c.pierId, pb.IBTP_INTERCHAIN)
-				logger.Info("s4:key-" + ev.Args + " event has been add into channel successfully")
+				logger.Info("s4:key-" + ev.Args + " index-" + strconv.FormatUint(ev.Index, 10) + " event has been add into channel successfully")
 				if c.outMeta == nil {
 					c.outMeta = make(map[string]uint64)
 				}
@@ -182,10 +182,10 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		return ret, fmt.Errorf("ibtp content unmarshal: %w", err)
 	}
 
-	if content.Func == "interchainGet" {
-		logger.Info("s5:key-" + string(content.Args[0]) + " submit interchainGet request")
-	} else if content.Func == "interchainSet" {
-		logger.Info("s9:key-" + string(content.Args[0]) + " submit interchainSet request")
+	if content.Func == "bundleRequest" {
+		logger.Info("s5:key-" + string(content.Args[0]) + " index-" + strconv.FormatUint(ibtp.Index, 10) + " submit interchainGet request")
+	} else if content.Func == "bundleResponse" {
+		logger.Info("s9:key-" + string(content.Args[0]) + " index-" + strconv.FormatUint(ibtp.Index, 10) + " submit interchainSet request")
 	}
 
 	if ibtp.Category() == pb.IBTP_UNKNOWN {
@@ -236,8 +236,8 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		// if there is callback function, parse returned value
 		result = toChaincodeArgs(strings.Split(string(resp.Data), ",")...)
 	}
-	if content.Func == "interchainSet" {
-		logger.Info("s10:key-" + string(content.Args[0]) + " submit interchainSet request finished")
+	if content.Func == "bundleResponse" {
+		logger.Info("s10:key-" + string(content.Args[0]) + " index-" + strconv.FormatUint(ibtp.Index, 10) + " submit interchainSet request finished")
 	}
 	// If is response IBTP, then simply return
 	if ibtp.Category() == pb.IBTP_RESPONSE {
@@ -260,8 +260,8 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 	tmp, err := json.Marshal(ret)
 	logger.Info("final return of submit IBTP is " + string(tmp))
 
-	if content.Func == "interchainGet" {
-		logger.Info("s8:key-" + string(content.Args[0]) + " submit interchainGet request finished")
+	if content.Func == "bundleRequest" {
+		logger.Info("s8:key-" + string(content.Args[0]) + " index-" + strconv.FormatUint(ibtp.Index, 10) + " submit interchainGet request finished")
 	}
 	return ret, nil
 }

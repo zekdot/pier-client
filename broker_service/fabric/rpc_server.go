@@ -30,6 +30,7 @@ type Event struct {
 type Service struct {
 	broker *BrokerClient
 	db *DB
+	bundleManager *BundleManager
 }
 
 type ReqArgs struct {
@@ -42,9 +43,11 @@ func NewService(broker *BrokerClient) *Service {
 	if err != nil {
 		panic(err)
 	}
+	bundleManager:= NewBundleManager()
 	return &Service{
 		broker: broker,
 		db: db,
+		bundleManager: bundleManager,
 	}
 }
 
@@ -76,12 +79,14 @@ func (s *Service) InterchainGet(req *ReqArgs, reply *string) error {
 	destChainID := args[0]
 	contractId := args[1]
 	key := args[2]
-
 	logger.Info("s1:key-" + key + " save cross-chain request to ledger")
+	s.bundleManager.AddRequest(destChainID, contractId, key)
+
 
 	defer logger.Info("s2:key-" + key + " have saved cross-chain request to ledger")
 
-	return s.db.InterchainGet(destChainID, contractId, key)
+	//return s.db.InterchainGet(destChainID, contractId, key)
+	return nil
 }
 
 
@@ -106,7 +111,17 @@ func (s *Service) PollingHelper(req *ReqArgs, reply *string) error {
 
 	m := make(map[string]uint64)
 	json.Unmarshal([]byte(mStr), &m)
-
+	// just save bundle to db
+	destChainID := s.bundleManager.PeekNextPierId()
+	if destChainID != nil {
+		tx, err := s.bundleManager.GetFirstBundle()
+		if err != nil {
+			return err
+		}
+		if err := s.db.SaveInterchainReq(*destChainID, tx); err != nil {
+			return err
+		}
+	}
 	evs, err := s.db.PollingEvents(m)
 	if err != nil {
 		return err
