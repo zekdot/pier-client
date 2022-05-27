@@ -234,7 +234,7 @@ func (db *DB) GetMetaStr(key string) (string, error) {
 	return string(value), nil
 }
 
-func (db *DB) InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isReq, funcName, key, value string, client *BrokerClient) (string, error) {
+func (db *DB) InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isReq, funcName, value string) (string, error) {
 
 	if err := db.UpdateIndex(sourceChainID, sequenceNum, isReq); err != nil {
 		return "", err
@@ -246,24 +246,11 @@ func (db *DB) InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isRe
 	}
 
 	var res = "unknown"
-	var valueBytes []byte
 	var err error
-	if funcName == "interchainGet"  {
-		logger.Info("s6:key-" + key + " try to get value from sawtooth")
-		valueBytes, err = client.getValue(key)
-		res = string(valueBytes)
-		logger.Info("s7:key-" + key + " get value " + res + " from sawtooth successfully")
-		if err != nil {
-			return "", err
-		}
+	if funcName == "bundleRequest"  {
+
 		inKey := inMsgKey(sourceChainID, sequenceNum)
 		err = db.db.Put([]byte(inKey), []byte(value), nil)
-		if err != nil {
-			return "", err
-		}
-	} else if funcName == "interchainSet" {
-		//logger.Info("s4:key-" + key + " submit interchainSet request")
-		err = client.setValue(key, value)
 		if err != nil {
 			return "", err
 		}

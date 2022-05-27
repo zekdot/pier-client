@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/hashicorp/go-hclog"
 	"os"
+	"sync"
 )
 
 var (
@@ -147,6 +148,52 @@ func (s *Service) GetOutMessageStrByKey(req *ReqArgs, reply *string) error {
 	return err
 }
 
+func MultiRead(threadNum int, keys []string, client *BrokerClient) (string, error) {
+	//threadNum := 10
+	ch := make(chan string, len(keys))
+	//done := make(chan bool, 5)
+	res := make([][]string, 0)
+	var wg sync.WaitGroup
+	if len(keys) < threadNum {
+		threadNum = len(keys)
+	}
+	wg.Add(threadNum)
+	for j := 0; j < threadNum; j ++ {
+		go func(index uint64) {
+			var key string
+			for true {
+				select {
+				case key =<- ch:
+					if key == "done" {
+						//fmt.Println("进程" + strconv.FormatUint(index, 10) + "结束")
+						wg.Done()
+						return
+					}
+					logger.Info("s6:key-" + key + " try to get value from sawtooth")
+					valueBytes, _ := client.getValue(key)
+					logger.Info("s7:key-" + key + " get value " + string(valueBytes) + " from sawtooth successfully")
+					res = append(res, []string{key, string(valueBytes)})
+					//fmt.Println("处理" + key)
+					//time.Sleep(1 * time.Millisecond)
+				}
+			}
+
+		}(uint64(j))
+	}
+	for _, key := range keys {
+		ch <- key
+	}
+	for j := 0; j < threadNum; j ++ {
+		ch <- "done"
+	}
+	wg.Wait()
+	resStr, err := json.Marshal(res)
+	if err != nil {
+		return "", err
+	}
+	return string(resStr), nil
+}
+
 func (s *Service) InvokeInterchainHelper(req *ReqArgs, reply *string) error {
 	args := req.Args
 	sourceChainID := args[0]
@@ -154,15 +201,32 @@ func (s *Service) InvokeInterchainHelper(req *ReqArgs, reply *string) error {
 	targetCID := args[2]
 	isReq := args[3]
 	funcName := args[4]
-	key := args[5]
-	var value string
-	if len(args) > 6 {
-		value = args[6]
-	} else {
-		value = ""
-	}
+	// no matter keys or key-values all in this parameter
+	arg := args[5]
+	//var value string
+	//if len(args) > 6 {
+	//	value = args[6]
+	//} else {
+	//	value = ""
+	//}
 	var err error
-	*reply, err = s.db.InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isReq, funcName, key, value, s.broker)
+	value := ""
+	if funcName == "bundleRequest" {
+		keys := make([]string, 0)
+		if err = json.Unmarshal([]byte(arg), &keys); err != nil {
+			return err
+		}
+		value, err = MultiRead(10, keys, s.broker)
+	} else if funcName == "bundleResponse" {
+		kvpairs := make([][]string, 0)
+		if err = json.Unmarshal([]byte(arg), &kvpairs); err != nil {
+			return err
+		}
+		for _, kv := range kvpairs {
+			err = s.broker.setValue(kv[0], kv[1])
+		}
+	}
+	s.db.InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isReq, funcName, value)
 	return err
 }
 
