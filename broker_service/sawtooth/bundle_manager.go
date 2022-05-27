@@ -63,7 +63,9 @@ func (bundleManager *BundleManager)GetFirstBundle() (*Event, error){
 		Func: "bundleRequest",
 		Args: string(keys),
 		Callback: "bundleResponse",
-		Argscb: string(keys),
+		// In fact here we don't need callback parameter anymore because it is contained in value
+		//Argscb: string(keys),
+		Argscb: "",
 		Rollback: "",
 		Argsrb: "",
 	}

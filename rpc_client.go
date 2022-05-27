@@ -52,12 +52,16 @@ func (rpcClient *RpcClient) PollingHelper(m map[string]uint64) ([]*Event, error)
 		return nil, err
 	}
 	reqArgs := ReqArgs{
-		"getMeta",
+		"PollingHelper",
 		[]string{string(mStr)},
 	}
 	if err = rpcClient.client.Call("Service.PollingHelper", reqArgs, &reply); err != nil {
 		return nil, err
 	}
+	if reply != "[]" {
+		logger.Debug("in a fetch--- " + reply)
+	}
+
 	res := make([]*Event, 0)
 	json.Unmarshal([]byte(reply), &res)
 	return res, nil
@@ -117,8 +121,11 @@ func MultiRead(threadNum int, keys []string, sourceChainID, sequenceNum, targetC
 	//threadNum := 10
 	ch := make(chan string, len(keys))
 	//done := make(chan bool, 5)
-	res := make([][]string, len(keys))
+	res := make([][]string, 0)
 	var wg sync.WaitGroup
+	if len(keys) < threadNum {
+		threadNum = len(keys)
+	}
 	wg.Add(threadNum)
 	for j := 0; j < threadNum; j ++ {
 		go func(index uint64) {
@@ -175,6 +182,10 @@ func (rpcClient *RpcClient) InvokeInterchainHelper(writeC chan ReqArgs, sourceCh
 	var value = ""
 
 	var valuePart = make([]string, 0)
+	// If this is a callback, jump the first callback parameter
+	if callFunc.Func == "bundleResponse" {
+		callFunc.Args = callFunc.Args[1:]
+	}
 	for _, arg := range callFunc.Args {
 		valuePart = append(valuePart, string(arg))
 	}
@@ -183,7 +194,7 @@ func (rpcClient *RpcClient) InvokeInterchainHelper(writeC chan ReqArgs, sourceCh
 	if callFunc.Func == "bundleResponse" {
 		// concat all args
 		kvpairs := make([][]string, 0)
-		err := json.Unmarshal([]byte(value), kvpairs)
+		err := json.Unmarshal([]byte(value), &kvpairs)
 		if err != nil {
 			return "", err
 		}
@@ -200,7 +211,7 @@ func (rpcClient *RpcClient) InvokeInterchainHelper(writeC chan ReqArgs, sourceCh
 
 	if callFunc.Func == "bundleRequest" {
 		keys := make([]string, 0)
-		if err := json.Unmarshal([]byte(value), keys); err != nil {
+		if err := json.Unmarshal([]byte(value), &keys); err != nil {
 			return "", err
 		}
 

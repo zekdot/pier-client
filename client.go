@@ -234,6 +234,7 @@ func (c *Client) SubmitIBTP(ibtp *pb.IBTP) (*pb.SubmitIBTPResponse, error) {
 		ret.Message = resp.Message
 
 		// if there is callback function, parse returned value
+		//logger.Debug("HE? result is " + string(resp.Data))
 		result = toChaincodeArgs(strings.Split(string(resp.Data), ",")...)
 	}
 	if content.Func == "bundleResponse" {
@@ -279,6 +280,7 @@ func (c *Client) InvokeInterchain(from string, index uint64, destAddr string, ca
 		//res, err = c.consumer.ChannelClient.Execute(request)
 		logger.Info("res is " + res)
 		if err != nil {
+			logger.Error("some error happen " + err.Error())
 			if strings.Contains(err.Error(), "Chaincode status Code: (500)") {
 				//res.ChaincodeStatus = shim.ERROR
 				logger.Error("execute request failed", "err", err.Error())
