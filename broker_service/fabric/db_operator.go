@@ -107,9 +107,10 @@ func (db *DB) SaveInterchainReq(destChainID string, tx *Event) error {
 		return err
 	}
 	// toId, contractId, "interchainGet", key, "interchainSet", key, "", ""
+
 	tx.Index = outMeta[destChainID] + 1
 
-	outMeta[tx.DstChainID]++
+	outMeta[destChainID]++
 
 	txValue, err := json.Marshal(tx)
 	if err != nil {
@@ -124,7 +125,8 @@ func (db *DB) SaveInterchainReq(destChainID string, tx *Event) error {
 	batch := new(leveldb.Batch)
 	batch.Put([]byte(outKey), txValue)
 	batch.Put([]byte(outmeta), metaBytes)
-
+	logger.Debug("保存outKey" + string(txValue))
+	logger.Debug("保存outmeta" + string(metaBytes))
 	return db.db.Write(batch, nil)
 }
 

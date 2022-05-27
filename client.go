@@ -135,6 +135,9 @@ func (c *Client) polling() {
 				return
 			}
 			for _, ev := range evs {
+				if ev == nil {
+					continue
+				}
 				ev.Proof = []byte("success")
 				evStr, _ := json.Marshal(ev)
 				logger.Info("s3:key-" + ev.Args + " index-" + strconv.FormatUint(ev.Index, 10) + " in this polling, event is " + string(evStr) + " add it to event channel which belong to pier")

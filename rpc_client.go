@@ -57,12 +57,18 @@ func (rpcClient *RpcClient) PollingHelper(m map[string]uint64) ([]*Event, error)
 	if err = rpcClient.client.Call("Service.PollingHelper", reqArgs, &reply); err != nil {
 		return nil, err
 	}
+
+
+	res := make([]*Event, 0)
 	if reply != "[]" {
 		logger.Debug("in a fetch--- " + reply)
 	}
+	err = json.Unmarshal([]byte(reply), &res)
+	if err != nil {
+		logger.Error("In unmarshal of events, there is an error:" + err.Error())
+		res = make([]*Event, 0)
+	}
 
-	res := make([]*Event, 0)
-	json.Unmarshal([]byte(reply), &res)
 	return res, nil
 }
 

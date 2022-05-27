@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/hashicorp/go-hclog"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -111,15 +112,24 @@ func (s *Service) PollingHelper(req *ReqArgs, reply *string) error {
 	mStr := args[0]
 
 	m := make(map[string]uint64)
-	json.Unmarshal([]byte(mStr), &m)
+	if err := json.Unmarshal([]byte(mStr), &m); err != nil {
+		return err
+	}
 	// just save bundle to db
 	destChainID := s.bundleManager.PeekNextPierId()
 	if destChainID != nil {
+		//logger.Debug("检测到发往" + *destChainID + "的交易")
 		tx, err := s.bundleManager.GetFirstBundle()
+
+		destChainIds := strings.Split(*destChainID, "#")
+		//
+		//temp, _ := json.Marshal(tx)
+		//logger.Debug("内容为" + string(temp))
+
 		if err != nil {
 			return err
 		}
-		if err := s.db.SaveInterchainReq(*destChainID, tx); err != nil {
+		if err := s.db.SaveInterchainReq(destChainIds[0], tx); err != nil {
 			return err
 		}
 	}
@@ -217,6 +227,7 @@ func (s *Service) InvokeInterchainHelper(req *ReqArgs, reply *string) error {
 			return err
 		}
 		value, err = MultiRead(10, keys, s.broker)
+		*reply = value
 	} else if funcName == "bundleResponse" {
 		kvpairs := make([][]string, 0)
 		if err = json.Unmarshal([]byte(arg), &kvpairs); err != nil {
