@@ -30,7 +30,7 @@ type Event struct {
 	Extra         []byte `json:"extra"`
 }
 type Service struct {
-	broker *BrokerClient
+	httpClient *HttpClient
 	db *DB
 	bundleManager *BundleManager
 }
@@ -40,33 +40,26 @@ type ReqArgs struct {
 	Args []string
 }
 
-func NewService(broker *BrokerClient) *Service {
+func NewService(httpClient *HttpClient) *Service {
 	db, err := NewDB(DB_PATH)
 	if err != nil {
 		panic(err)
 	}
 	bundleManager:= NewBundleManager()
 	return &Service{
-		broker: broker,
+		httpClient: httpClient,
 		db: db,
 		bundleManager: bundleManager,
 	}
 }
 
-// send transaction and don't need result
-func (s *Service) SetValue(req *ReqArgs, reply *string) error{
-	broker := s.broker
-	args := req.Args
-	err := broker.setValue(args[0], args[1])
-	return err
-}
-
 // query transaction and need result
 func (s *Service) GetValue(req *ReqArgs, reply *string) error{
-	broker := s.broker
+
 	args := req.Args
-	res, err := broker.getValue(args[0])
-	*reply = string(res)
+	consumerPackageId := args[0]
+	res, err := s.httpClient.GetValue(consumerPackageId)
+	*reply = res
 	return err
 }
 
@@ -158,7 +151,7 @@ func (s *Service) GetOutMessageStrByKey(req *ReqArgs, reply *string) error {
 	return err
 }
 
-func MultiRead(threadNum int, keys []string, client *BrokerClient) (string, error) {
+func MultiRead(threadNum int, keys []string, client *HttpClient) (string, error) {
 	//threadNum := 10
 	ch := make(chan string, len(keys))
 	//done := make(chan bool, 5)
@@ -180,7 +173,7 @@ func MultiRead(threadNum int, keys []string, client *BrokerClient) (string, erro
 						return
 					}
 					logger.Info("s6:key-" + key + " try to get value from sawtooth")
-					valueBytes, _ := client.getValue(key)
+					valueBytes, _ := client.GetValue(key)
 					logger.Info("s7:key-" + key + " get value " + string(valueBytes) + " from sawtooth successfully")
 					res = append(res, []string{key, string(valueBytes)})
 					//fmt.Println("处理" + key)
@@ -226,16 +219,17 @@ func (s *Service) InvokeInterchainHelper(req *ReqArgs, reply *string) error {
 		if err = json.Unmarshal([]byte(arg), &keys); err != nil {
 			return err
 		}
-		value, err = MultiRead(10, keys, s.broker)
+		value, err = MultiRead(10, keys, s.httpClient)
 		*reply = value
 	} else if funcName == "bundleResponse" {
-		kvpairs := make([][]string, 0)
-		if err = json.Unmarshal([]byte(arg), &kvpairs); err != nil {
-			return err
-		}
-		for _, kv := range kvpairs {
-			err = s.broker.setValue(kv[0], kv[1])
-		}
+		// I think sawtooth side won't
+		//kvpairs := make([][]string, 0)
+		//if err = json.Unmarshal([]byte(arg), &kvpairs); err != nil {
+		//	return err
+		//}
+		//for _, kv := range kvpairs {
+		//	err = s.broker.setValue(kv[0], kv[1])
+		//}
 	}
 	s.db.InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isReq, funcName, value)
 	return err

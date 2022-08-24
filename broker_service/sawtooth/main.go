@@ -8,8 +8,8 @@ import (
 )
 
 func main() {
-	brokerClient, _ := NewBrokerClient(SAWTOOTH_URL, KEY_PATH)
-	service := NewService(brokerClient)
+	httpClient := NewHttpClient()
+	service := NewService(httpClient)
 	log.Printf("start listen")
 	rpc.Register(service)
 	rpc.HandleHTTP()
