@@ -7,17 +7,13 @@ import (
 
 type Get struct {
 	Args struct {
-		Name string `positional-arg-name:"name" required:"true" description:"Name of key to show"`
+		Key string `positional-arg-name:"name" required:"true" description:"Name of key to show"`
 	} `positional-args:"true"`
-	Url string `long:"url" description:"Specify URL of REST API"`
+	Url string `long:"url" description:"Specify URL of RPC API"`
 }
 
 func (args *Get) Name() string {
 	return "get"
-}
-
-func (args *Get) KeyfilePassed() string {
-	return ""
 }
 
 func (args *Get) UrlPassed() string {
@@ -34,8 +30,12 @@ func (args *Get) Register(parent *flags.Command) error {
 
 func (args *Get) Run() error {
 	// Construct client
-	name := args.Args.Name
-	dsClient, err := GetClient()
+	name := args.Args.Key
+	url := args.Url
+	if url == "" {
+		url = RPC_URL
+	}
+	dsClient, err := GetClient(url)
 	if err != nil {
 		return err
 	}

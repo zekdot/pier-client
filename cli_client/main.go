@@ -11,7 +11,6 @@ import (
 type Command interface {
 	Register(*flags.Command) error
 	Name() string
-	KeyfilePassed() string
 	UrlPassed() string
 	Run() error
 }
@@ -23,7 +22,7 @@ type Opts struct {
 
 var DISTRIBUTION_VERSION string
 
-var logger *logging.Logger = logging.Get()
+var logger = logging.Get()
 
 func init() {
 	if len(DISTRIBUTION_VERSION) == 0 {
@@ -35,7 +34,6 @@ func main() {
 	arguments := os.Args[1:]
 	for _, arg := range arguments {
 		if arg == "-V" || arg == "--version" {
-			//fmt.Println(DISTRIBUTION_NAME + " (Hyperledger Sawtooth) version " + DISTRIBUTION_VERSION)
 			os.Exit(0)
 		}
 	}
@@ -102,6 +100,6 @@ func main() {
 	fmt.Println("Error: Command not found: ", name)
 }
 
-func GetClient() (*RpcClient, error) {
-	return NewRpcClient(RPC_URL)
+func GetClient(url string) (*RpcClient, error) {
+	return NewRpcClient(url)
 }

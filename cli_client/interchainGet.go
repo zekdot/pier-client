@@ -10,17 +10,11 @@ type InterchainGet struct {
 		CCid string `positional-arg-name:"ccid" required:"true" description:"target contract's address"`
 		Key string `positional-arg-name:"key" required:"true" description:"value's key"`
 	} `positional-args:"true"`
-	Url     string `long:"url" description:"Specify URL of REST API"`
-	Keyfile string `long:"keyfile" description:"Identify file containing user's private key"`
-	Wait    uint   `long:"wait" description:"Set time, in seconds, to wait for transaction to commit"`
+	Url     string `long:"url" description:"Specify URL of RPC API"`
 }
 
 func (args *InterchainGet) Name() string {
 	return "interchainGet"
-}
-
-func (args *InterchainGet) KeyfilePassed() string {
-	return args.Keyfile
 }
 
 func (args *InterchainGet) UrlPassed() string {
@@ -40,10 +34,8 @@ func (args *InterchainGet) Run() error {
 	toId := args.Args.TargetChainId
 	cid := args.Args.CCid
 	key := args.Args.Key
-	//fmt.Printf("%s %s %s\n", toId, cid, key)
-	//wait := args.Wait
 
-	dsClient, err := GetClient()
+	dsClient, err := GetClient(args.Url)
 	if err != nil {
 		return err
 	}
