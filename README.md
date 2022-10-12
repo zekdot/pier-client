@@ -1,7 +1,18 @@
-# Pier Client General
+# 简介
 
-Pier-Client is plugin of bitxhub,  which use one plugin to support many appchain.
+pier-client是基于BitXHub实现的可以支持多种区块链的通用化插件。
 
+# 目录结构
+```
+├── broker_service 不同应用链的客户端实现
+├── cli_client 默认的命令行客户端实现
+├── plugin 插件逻辑的实现
+├── scripts 部署相关shell脚本
+├── send_many_interchainGet 发送并发交易的工具
+└── smart_contract 智能合约
+```
+
+# 使用
 Before start. We assume your take a directory as a workspace. In my situation, workspace is $HOME/bitxhub1.6.5。Put fabric-samples and pier-client and pier under workspace. Then copy all shell scripts in pier-client/scripts to your workspace. The workspace should be look like this.
 
 ```

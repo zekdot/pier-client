@@ -1,9 +1,0 @@
-build
-.git
-.idea
-figure
-deploySawtooth.sh
-deploy.sh
-broker_service/fabric/constants.go
-broker_service/sawtooth/constants.go
-*_test.go
