@@ -3,10 +3,10 @@ export WORKSPACE=$HOME/bitxhub1.6.5
 # BitXHub's official pier-client project cloned from GitHub.
 export PIER_CLIENT_PATH=${WORKSPACE}/pier-client
 
-export BITXHUB_ADDRESS=106.12.58.163 #172.19.241.113
+export BITXHUB_ADDRESS=localhost
 
 function compile_plugins() {
-    cd $PIER_CLIENT_PATH
+    cd $PIER_CLIENT_PATH/plugin
     # git checkout v1.6.5
     make general
 }
@@ -35,18 +35,18 @@ function prepare_pier() {
     prepare_pier_toml
     # 创建插件文件夹并进行拷贝
     mkdir $HOME/.pier/plugins
-    cp $PIER_CLIENT_PATH/build/general $HOME/.pier/plugins/general.so
-    cp -r $PIER_CLIENT_PATH/config $HOME/.pier/fabric
+    cp $PIER_CLIENT_PATH/plugin/build/general $HOME/.pier/plugins/general.so
+    cp -r $PIER_CLIENT_PATH/scripts/config $HOME/.pier/fabric
     # # 准备加密材料
-    cp -r $PIER_CLIENT_PATH/crypto-config $HOME/.pier/fabric/
+    cp -r $PIER_CLIENT_PATH/scripts/crypto-config $HOME/.pier/fabric/
     # 复制Fabric上验证人证书
     cp $HOME/.pier/fabric/crypto-config/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/msp/signcerts/peer1.org2.example.com-cert.pem $HOME/.pier/fabric/fabric.validators
-    
+
     # 修改网络配置和路径
     sed -i "s:\${CONFIG_PATH}:${HOME}/.pier/fabric:g" $HOME/.pier/fabric/config.yaml
     sed -i 's/host.docker.internal/localhost/g' $HOME/.pier/fabric/config.yaml
     # 可能需要修改$HOME/.pier/fabric/fabric.toml，这里只替换一下第一行的内容就行
-    cat $PIER_CLIENT_PATH/config/fabric.toml | sed '1c addr = "localhost:7053"' > $HOME/.pier/fabric/fabric.toml
+    cat $PIER_CLIENT_PATH/scripts/config/fabric.toml | sed '1c addr = "localhost:7053"' > $HOME/.pier/fabric/fabric.toml
     # 最后对中继链进行注册
     pier --repo $HOME/.pier appchain register \
         --name=hf232 \
