@@ -210,6 +210,12 @@ vote successfully!
 
 # Start pier
 
+Deploy validation file.
+
+```sh
+pier --repo $HOME/.pier rule deploy --path=$HOME/.pier/fabric/validating.wasm
+```
+
 Start pier
 
 ```sh

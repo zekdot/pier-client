@@ -206,6 +206,12 @@ vote successfully!
 
 # 启动pier
 
+首先部署验证文件
+
+```sh
+pier --repo $HOME/.pier rule deploy --path=$HOME/.pier/fabric/validating.wasm
+```
+
 启动pier
 
 ```sh
