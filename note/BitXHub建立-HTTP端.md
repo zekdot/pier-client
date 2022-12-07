@@ -218,6 +218,13 @@ pier --repo $HOME/.pier rule deploy --path=$HOME/.pier/fabric/validating.wasm
 pier start
 ```
 
+初始化元数据
+
+```sh
+cd $HOME/bitxhub1.6.5/pier-client/cli_client
+./cli init
+```
+
 当输出如下内容时，说明启动成功
 
 ```

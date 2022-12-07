@@ -222,6 +222,13 @@ Start pier
 pier start
 ```
 
+Initiate the meta-data
+
+```sh
+cd $HOME/bitxhub1.6.5/pier-client/cli_client
+./cli init
+```
+
 If we have following output, then the start is successful.
 
 ```
