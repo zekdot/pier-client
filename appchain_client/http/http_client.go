@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -65,7 +66,7 @@ func (httpClient *HttpClient) GetValue(consumerPackageId string) (string, error)
 	if err != nil {
 		return "", err
 	}
-	if string(body) == "{\"statusCode\":401,\"message\":\"Unauthorized\"}" {
+	if strings.HasPrefix(body, "{\"statusCode\":401") {
 		var err error
 		httpClient.token, err = httpClient.Login()
 		if err != nil {
