@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config"
 	"github.com/hyperledger/fabric-sdk-go/pkg/gateway"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"

@@ -34,8 +34,13 @@ func (args *InterchainGet) Run() error {
 	toId := args.Args.TargetChainId
 	cid := args.Args.CCid
 	key := args.Args.Key
+	url := args.Url
 
-	dsClient, err := GetClient(args.Url)
+	if url == "" {
+		url = RPC_URL
+	}
+
+	dsClient, err := GetClient(url)
 	if err != nil {
 		return err
 	}

@@ -227,13 +227,13 @@ func (s *Service) InvokeInterchainHelper(req *ReqArgs, reply *string) error {
 		*reply = value
 	} else if funcName == "bundleResponse" {
 		// I think sawtooth side won't
-		//kvpairs := make([][]string, 0)
-		//if err = json.Unmarshal([]byte(arg), &kvpairs); err != nil {
-		//	return err
-		//}
-		//for _, kv := range kvpairs {
-		//	err = s.broker.setValue(kv[0], kv[1])
-		//}
+		kvpairs := make([][]string, 0)
+		if err = json.Unmarshal([]byte(arg), &kvpairs); err != nil {
+			return err
+		}
+		for _, kv := range kvpairs {
+			err = (*s.appchainClient).SetValue(kv[0], kv[1])
+		}
 	}
 	s.db.InvokeInterchainHelper(sourceChainID, sequenceNum, targetCID, isReq, funcName, value)
 	return err
