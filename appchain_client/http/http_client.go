@@ -51,6 +51,8 @@ func (httpClient *HttpClient) Login() (string, error) {
 }
 
 func (httpClient *HttpClient) GetValue(consumerPackageId string) (string, error){
+	// We will try to fetch directly first
+	// if failed and need auth, then login and get token and fetch data again
 	req, err := http.NewRequest("GET", DATA_URL + "/" + consumerPackageId, nil)
 	req.Header.Set("Authorization", "Bearer " + httpClient.token)
 	if err != nil {
@@ -66,7 +68,7 @@ func (httpClient *HttpClient) GetValue(consumerPackageId string) (string, error)
 	if err != nil {
 		return "", err
 	}
-	if strings.HasPrefix(body, "{\"statusCode\":401") {
+	if strings.HasPrefix(string(body), "{\"statusCode\":401") {
 		var err error
 		httpClient.token, err = httpClient.Login()
 		if err != nil {
